@@ -25,7 +25,7 @@ func init() {
 				&controllers.ChannelTypeController{},
 			),
 		),
-		beego.NSNamespace("/",
+		beego.NSNamespace("/swagger",
 			beego.NSInclude(
 				&controllers.IndexController{},
 			),

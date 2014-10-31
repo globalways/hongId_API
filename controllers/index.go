@@ -11,6 +11,7 @@ type IndexController struct {
 	beego.Controller
 }
 
+// @router / [get]
 func (c *IndexController) Index() {
 	c.Redirect("/swagger/#!", 302)
 }
