@@ -7,130 +7,155 @@ import (
 	"encoding/json"
 	"github.com/astaxie/beego"
 	"hongId/models"
+	e "github.com/globalways/gws_utils_go/errors"
+	"net/http"
+	"github.com/globalways/gws_utils_go/convert"
 )
 
-var (
-	_ beego.Controller
-)
-
-// 分发渠道API
+// channelType API
 type ChannelTypeController struct {
 	BaseController
 }
 
 // @Title createChannelType
-// @Description 创建一个分发渠道
-// @Param	channelType		body 	models.ChannelType true		"分发渠道json"
-// @Success 200 {object} models.ChannelType
-// @Failure 403 body is empty
-// @Failure 500 json unmarshal error
+// @Description generate a channel type
+// @Param	channelType		body 	models.ChannelType true		"channel type json param"
+// @Success 201 {object} models.ChannelType
+// @Failure 200 channelType exist already
+// @Failure 400 invalid http request param
+// @Failure 500 internal server error
 // @router / [post]
 func (c *ChannelTypeController) Post() {
 	channelType := new(models.ChannelType)
-
-	err := json.Unmarshal(c.Ctx.Input.RequestBody, channelType)
+	err := json.Unmarshal(c.getHttpBody(), channelType)
 	if err != nil {
-		c.Data["json"] = err
-		c.Ctx.Output.Status = 203
-		c.ServeJson()
-		c.StopRun()
+		c.appenWrongParams(models.NewFieldError("channelType", err.Error()))
+	}
+
+	// handle http request param
+	if c.handleParamError() {
+		return
 	}
 
 	id, gErr := models.NewChannelType(channelType, models.Writter)
 	if gErr.IsError() {
-		c.Data["json"] = gErr.ErrorMessage()
-		c.Ctx.Output.Status = 203
-		c.ServeJson()
-		c.StopRun()
+		if gErr.GetCode() == e.CODE_DB_DATA_EXIST {
+			c.setHttpStatus(http.StatusOK)
+		} else {
+			c.setHttpStatus(http.StatusInternalServerError)
+		}
+
+		c.renderJson(models.NewCommonOutError(gErr))
+		return
 	}
 
 	channelType.Id = id
-	c.Data["json"] = channelType
-	c.ServeJson()
+
+	c.setHttpHeader("Location", c.combineUrl(beego.UrlFor("ChannelTypeController.Get", convert.Int642str(id))))
+	c.setHttpStatus(http.StatusCreated)
+	c.renderJson(channelType)
 }
 
 // @Title GetChannels
-// @Description 获取所有的分发渠道
+// @Description get all the channels
 // @Success 200 {object} models.ChannelType
+// @Failure 404 channel type list is blank
+// @Failure 500 internal server error
 // @router / [get]
 func (c *ChannelTypeController) GetAll() {
 	channelList, gErr := models.FindMemberCardChannel(models.Reader)
 	if gErr.IsError() {
-		c.Data["json"] = gErr.ErrorMessage()
-		c.Ctx.Output.Status = 203
-		c.ServeJson()
-		c.StopRun()
+		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+			c.setHttpStatus(http.StatusNotFound)
+		} else {
+			c.setHttpStatus(http.StatusInternalServerError)
+		}
+
+		c.renderJson(models.NewCommonOutError(gErr))
+		return
 	}
 
-	c.Data["json"] = channelList
-	c.ServeJson()
+	c.renderJson(channelList)
 }
 
 // @Title GetChannel
-// @Description 通过ID获取分发渠道
-// @Param	channelId		path 	int64	true		"分发渠道ID"
+// @Description get channel by channelid
+// @Param channelId path int true "channel id"
 // @Success 200 {object} models.ChannelType
 // @Failure 403 :channelId is empty
 // @router /:channelId [get]
 func (c *ChannelTypeController) Get() {
 	channelId, err := c.GetInt(":channelId")
 	if err != nil {
-		c.Data["json"] = err
-		c.Ctx.Output.Status = 203
-		c.ServeJson()
-		c.StopRun()
+		c.appenWrongParams(models.NewFieldError("channelId", err.Error()))
+	}
+
+	// handle http request param
+	if c.handleParamError() {
+		return
 	}
 
 	channel, gErr := models.GetChannelType(channelId, models.Reader)
 	if gErr.IsError() {
-		c.Data["json"] = gErr.ErrorMessage()
-		c.Ctx.Output.Status = 203
-		c.ServeJson()
-		c.StopRun()
+		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+			c.setHttpStatus(http.StatusNotFound)
+		} else {
+			c.setHttpStatus(http.StatusInternalServerError)
+		}
+
+		c.renderJson(models.NewCommonOutError(gErr))
+		return
 	}
 
-	c.Data["json"] = channel
-	c.ServeJson()
+	c.renderJson(channel)
 }
 
 // @Title updateChannel
-// @Description 更新分发渠道信息
-// @Param	channelId		path 	string	true		"想更新的渠道ID"
-// @Param	channelType		body 	models.ChannelType	true		"更新的渠道信息"
+// @Description update channel
+// @Param channelId	path string	true "channel id"
+// @Param channelType body models.ChannelType true "after update's channelType info"
 // @Success 200 {object} models.ChannelType
-// @Failure 403 :channelId is not int
+// @Failure 403 invalid http request param
+// @Failure 404 channeltype not found
+// @Failure 500 internal server error
 // @router /:channelId [put]
 func (c *ChannelTypeController) Put() {
 
 	channelId, err := c.GetInt(":channelId")
 	if err != nil {
-		c.Data["json"] = err
-		c.Ctx.Output.Status = 203
-		c.ServeJson()
-		c.StopRun()
+		c.appenWrongParams(models.NewFieldError("channelId", err.Error()))
 	}
 
+
 	channel := new(models.ChannelType)
-	err = json.Unmarshal(c.Ctx.Input.RequestBody, channel)
+	err = json.Unmarshal(c.getHttpBody(), channel)
 	if err != nil {
-		c.Data["json"] = err
-		c.Ctx.Output.Status = 203
-		c.ServeJson()
-		c.StopRun()
+		c.appenWrongParams(models.NewFieldError("channelType Json", err.Error()))
 	}
+
 	if channel.Id == 0 {
 		channel.Id = channelId
+	} else if channel.Id != channelId {
+		c.appenWrongParams(models.NewFieldError("channelId", "path channelId & json channelId didn't match."))
+	}
+
+	// handle http request param
+	if c.handleParamError() {
+		return
 	}
 
 	_, gErr := models.UpdateChannelType(channel, models.Writter)
 	if gErr.IsError() {
-		c.Data["json"] = gErr.ErrorMessage()
-		c.Ctx.Output.Status = 203
-		c.ServeJson()
-		c.StopRun()
+		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+			c.setHttpStatus(http.StatusNotFound)
+		} else {
+			c.setHttpStatus(http.StatusInternalServerError)
+		}
+
+		c.renderJson(models.NewCommonOutError(gErr))
+		return
 	}
 
-	c.Data["json"] = channel
-	c.ServeJson()
+	c.renderJson(channel)
 }
 

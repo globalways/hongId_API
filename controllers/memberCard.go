@@ -6,15 +6,9 @@ package controllers
 import (
 	"encoding/json"
 	"github.com/astaxie/beego"
-	"github.com/astaxie/beego/context"
 	"net/http"
 	"hongId/models"
 	e "github.com/globalways/gws_utils_go/errors"
-)
-
-var (
-	_ context.Context
-	_ beego.Controller
 )
 
 // MemberCard API
@@ -31,7 +25,7 @@ type MemberCardController struct {
 // @router / [post]
 func (c *MemberCardController) Post() {
 	reqMemberCards := new(models.ReqNewMemberCards)
-	if err := json.Unmarshal(c.Ctx.Input.RequestBody, reqMemberCards); err != nil {
+	if err := json.Unmarshal(c.getHttpBody(), reqMemberCards); err != nil {
 		c.appenWrongParams(models.NewFieldError("reqNewMemberCards", err.Error()))
 	}
 
@@ -120,6 +114,7 @@ func (c *MemberCardController) Get() {
 		c.appenWrongParams(models.NewFieldError("memberCardId", err.Error()))
 	}
 
+	// handle http request param
 	if c.handleParamError() {
 		return
 	}
@@ -153,6 +148,7 @@ func (c *MemberCardController) GetQrCode() {
 		c.appenWrongParams(models.NewFieldError("memberCardId", err.Error()))
 	}
 
+	// handle http request param
 	if c.handleParamError() {
 		return
 	}

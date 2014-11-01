@@ -7,7 +7,6 @@ import (
 	"github.com/astaxie/beego"
 	"hongId/models"
 	"github.com/astaxie/beego/context"
-	"fmt"
 	"net/http"
 	"github.com/globalways/gws_utils_go/errors"
 )
@@ -68,6 +67,11 @@ func (c *BaseController) setHttpBody(body []byte) {
 	c.Ctx.Output.Body(body)
 }
 
+// get http request body
+func (c *BaseController) getHttpBody() []byte {
+	return c.Ctx.Input.RequestBody
+}
+
 // set http response contenttype
 func (c *BaseController) setHttpContentType(ext string) {
 	c.Ctx.Output.ContentType(ext)
@@ -75,11 +79,7 @@ func (c *BaseController) setHttpContentType(ext string) {
 
 // combine url
 func (c *BaseController) combineUrl(router string) string {
-	scheme := c.Ctx.Input.Scheme()
-	host := c.Ctx.Input.Host()
-	port := c.Ctx.Input.Port()
-
-	return fmt.Sprintf("%s://%s:%v%s", scheme, host, port, router)
+	return c.Ctx.Input.Site() + router
 }
 
 // handle http request param error

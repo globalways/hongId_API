@@ -10,7 +10,6 @@ import (
 	"github.com/globalways/gws_utils_go/algorith"
 	"github.com/globalways/gws_utils_go/qr"
 	"github.com/globalways/gws_utils_go/errors"
-	"github.com/globalways/gws_utils_go/page"
 )
 
 // 请求新建会员卡参数
@@ -126,7 +125,7 @@ func GenMemberCards(reqMsg *ReqNewMemberCards, ormer orm.Ormer) ([]string, error
 		affactedTotal++
 		maxPii++
 
-		cardNumbers = append(cardNumbers, memberCard.Formate())
+		cardNumbers = append(cardNumbers, memberCard.String())
 	}
 
 	return cardNumbers, errors.ErrorOK()
