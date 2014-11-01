@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+// page
+type Page struct {
+	Size         int         // per page count
+	CurPage      int         // current page
+}
+
 //数据库连接
 var (
 	Reader orm.Ormer //读数据

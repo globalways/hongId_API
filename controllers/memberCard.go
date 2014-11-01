@@ -9,121 +9,165 @@ import (
 	"github.com/astaxie/beego/context"
 	"net/http"
 	"hongId/models"
-	"github.com/globalways/gws_utils_go/page"
+	e "github.com/globalways/gws_utils_go/errors"
 )
 
 var (
 	_ context.Context
+	_ beego.Controller
 )
 
-// 会员卡API
+// MemberCard API
 type MemberCardController struct {
-	beego.Controller
+	BaseController
 }
 
 // @Title createMemberCards
-// @Description 批量生成会员卡
-// @Param reqMemberCards body models.ReqNewMemberCards true "请求新建会员卡参数"
-// @Success 200 {int} models.MemberCard.Id
-// @Failure 400 bad request
-// @Failure 403 body is empty
-// @Failure 500 internal server error
+// @Description generate member card batch
+// @Param reqMemberCards body models.ReqNewMemberCards true "request param json"
+// @Success 201 {int[]} models.MemberCard.Id
+// @Failure 400 request body is invalid
+// @Failure 500 generate member card error
 // @router / [post]
 func (c *MemberCardController) Post() {
 	reqMemberCards := new(models.ReqNewMemberCards)
 	if err := json.Unmarshal(c.Ctx.Input.RequestBody, reqMemberCards); err != nil {
-		c.Ctx.Output.Status = http.StatusBadRequest
-		c.StopRun()
+		c.appenWrongParams(models.NewFieldError("reqNewMemberCards", err.Error()))
+	}
+
+	// handle http request param
+	if c.handleParamError() {
+		return
 	}
 
 	cardIds, gErr := models.GenMemberCards(reqMemberCards, models.Writter)
 	if gErr.IsError() {
-		c.Ctx.Output.Status = http.StatusInternalServerError
-		c.StopRun()
+		if gErr.GetCode() == e.CODE_DB_DATA_EXIST {
+			c.setHttpStatus(http.StatusOK)
+		} else {
+			c.setHttpStatus(http.StatusInternalServerError)
+		}
+
+		c.renderJson(models.NewCommonOutError(gErr))
+		return
 	}
 
-	c.Data["json"] = cardIds
-	c.ServeJson()
+	// TODO 以一个产生创建活动的 POST 操作为例, 使用一个 HTTP 201 状态代码 然后包含一个 Location header 来指向新生资源的URL。
+	c.setHttpHeader("Location", c.combineUrl(beego.UrlFor("MemberCardController.Get", cardIds[0])))
+	c.setHttpStatus(http.StatusCreated)
+	c.renderJson(cardIds)
 }
 
 // @Title getMemberCards
-// @Description 获取会员卡号列表
-// @Param page query int64 false "分页page"
-// @Param size query int64 false "分页size"
-// @Success 200 {int} models.MemberCard
-// @Failure 500 internal server error
+// @Description get member card list by page & size
+// @Param page query int64 false "page number"
+// @Param size query int64 false "each page count"
+// @Success 200 {object} models.MemberCard
+// @Failure 403 request url's parameter is invalid
+// @Failure 404 request resource not found
+// @Failure 500 get memberCard list wrong
 // @router / [get]
 func (c *MemberCardController) GetAll() {
 
-	pageNum, _ := c.GetInt("page")
-	pageSize, _ := c.GetInt("size")
-	if pageNum == 0 {
-		pageNum = 1
+	var pageNum, pageSize int64
+	if page, err := c.GetInt("page"); err != nil {
+		c.appenWrongParams(models.NewFieldError("page", err.Error()))
+	} else {
+		pageNum = page
 	}
-	if pageSize == 0 {
-		pageSize = 10
+	if size, err := c.GetInt("size"); err != nil {
+		c.appenWrongParams(models.NewFieldError("size", err.Error()))
+	} else {
+		pageSize = size
 	}
 
-	pager := &page.Page{
-		Perpage:      pageSize,
-		Current_page: pageNum,
+	// handle http request param
+	if c.handleParamError() {
+		return
+	}
+
+	pager := &models.Page{
+		Size: pageSize,
+		CurPage: pageNum,
 	}
 
 	cards, gErr := models.FindMemberCard(pager, models.Reader)
 	if gErr.IsError() {
-		c.Ctx.Output.Status = http.StatusInternalServerError
-		c.StopRun()
+		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+			c.setHttpStatus(http.StatusNotFound)
+		} else {
+			c.setHttpStatus(http.StatusInternalServerError)
+		}
+
+		c.renderJson(models.NewCommonOutError(gErr))
+		return
 	}
 
-	c.Data["json"] = cards
-	c.ServeJson()
+	c.renderJson(cards)
 }
 
-// @Title getMemberCard
-// @Description 通过ID获取会员卡信息
-// @Param	cardId		path 	int	true		"会员卡ID"
-// @Success 200 {int} models.MemberCard
-// @Failure 400 bad request
+// @Title getMemberCardById
+// @Description get member card info by id
+// @Param	id		path 	int	true		"member card id"
+// @Success 200 {object} models.MemberCard
+// @Failure 400 http request param is invalid
+// @Failure 404 member card not found
 // @Failure 500 internal server error
-// @router /:cardId [get]
+// @router /:id [get]
 func (c *MemberCardController) Get() {
-	cardId, err := c.GetInt(":cardId")
+	cardId, err := c.GetInt(":id")
 	if err != nil {
-		c.Ctx.Output.Status = http.StatusBadRequest
-		c.StopRun()
+		c.appenWrongParams(models.NewFieldError("memberCardId", err.Error()))
+	}
+
+	if c.handleParamError() {
+		return
 	}
 
 	card, gErr := models.GetMemberCardById(cardId, models.Reader)
 	if gErr.IsError() {
-		c.Ctx.Output.Status = http.StatusInternalServerError
-		c.StopRun()
+		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+			c.setHttpStatus(http.StatusNotFound)
+		} else {
+			c.setHttpStatus(http.StatusInternalServerError)
+		}
+
+		c.renderJson(models.NewCommonOutError(gErr))
+		return
 	}
 
-	c.Data["json"] = card
-	c.ServeJson()
+	c.renderJson(card)
 }
 
 // @Title getMemberCardQrCode
-// @Description 通过ID获取会员卡二维码
-// @Param	cardId		path 	int	true		"会员卡ID"
+// @Description get member card qrcode by id
+// @Param id path int true "member card id"
 // @Success 200 {image/png} qrCode
-// @Failure 400 bad request
+// @Failure 400 invalid http request param
+// @Failure 404 member card not found
 // @Failure 500 internal server error
-// @router /:cardId/qrcode [get]
+// @router /:id/qrcode [get]
 func (c *MemberCardController) GetQrCode() {
-	cardId, err := c.GetInt(":cardId")
+	cardId, err := c.GetInt(":id")
 	if err != nil {
-		c.Ctx.Output.Status = http.StatusBadRequest
-		c.StopRun()
+		c.appenWrongParams(models.NewFieldError("memberCardId", err.Error()))
+	}
+
+	if c.handleParamError() {
+		return
 	}
 
 	card, gErr := models.GetMemberCardById(cardId, models.Reader)
 	if gErr.IsError() {
-		c.Ctx.Output.Status = http.StatusInternalServerError
-		c.StopRun()
+		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+			c.setHttpStatus(http.StatusNotFound)
+		} else {
+			c.setHttpStatus(http.StatusInternalServerError)
+		}
+
+		c.renderJson(models.NewCommonOutError(gErr))
+		return
 	}
 
-	qrBytes := card.GenQrStream()
-	c.Ctx.Output.Body(qrBytes)
-	c.Ctx.Output.ContentType("image/png")
+	c.renderPng(card.GenQrStream())
 }

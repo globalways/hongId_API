@@ -9,9 +9,13 @@ import (
 	"hongId/models"
 )
 
+var (
+	_ beego.Controller
+)
+
 // 分发渠道API
 type ChannelTypeController struct {
-	beego.Controller
+	BaseController
 }
 
 // @Title createChannelType
