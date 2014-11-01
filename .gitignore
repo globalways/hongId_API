@@ -23,6 +23,7 @@ _testmain.go
 *.test
 *.prof
 
+.gitignore
 .DS_store
 
 # godep
@@ -32,6 +33,7 @@ Godeps
 swagger
 docs
 *.tmp
+hongId
 
 # cloud foundry
 .cfignore

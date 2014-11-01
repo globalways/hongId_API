@@ -10,9 +10,6 @@ import (
 )
 
 func main() {
-	beego.DirectoryIndex = true
-	beego.StaticDir["/swagger"] = "swagger"
-
 	beego.Run()
 }
 
@@ -23,9 +20,14 @@ func init() {
 		ctx.Output.Header("Access-Control-Allow-Methods", "*")
 	}
 
-	beego.InsertFilter("*", beego.BeforeRouter, corsHandler)
+	if beego.RunMode == "dev" {
+		beego.DirectoryIndex = true
+		beego.StaticDir["/swagger"] = "swagger"
 
-	// log setting
+		beego.InsertFilter("*", beego.BeforeRouter, corsHandler)
+	}
+
+	// log
 	beego.BeeLogger.EnableFuncCallDepth(true)
 	beego.BeeLogger.SetLogFuncCallDepth(4)
 	if beego.RunMode == "prod" {

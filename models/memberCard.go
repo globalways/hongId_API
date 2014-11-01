@@ -10,7 +10,6 @@ import (
 	"github.com/globalways/gws_utils_go/algorith"
 	"github.com/globalways/gws_utils_go/qr"
 	"github.com/globalways/gws_utils_go/errors"
-	"github.com/globalways/gws_utils_go/page"
 )
 
 // 请求新建会员卡参数
@@ -26,8 +25,6 @@ type ReqNewMemberCards struct {
 const (
 	_DEFAULT_INSERT_ERR_CNT = 3
 )
-
-type CardNumber string
 
 type EMemberCardStatus byte
 
@@ -55,14 +52,9 @@ func (c *MemberCard) TableName() string {
 	return "member_card"
 }
 
-// 格式化输出
-func (c *MemberCard) Formate() CardNumber {
-	return CardNumber(fmt.Sprintf("%v%v%.*d%.*d%v", c.MII, c.CPI, 3, c.CDI, 12, c.PII, c.IVC))
-}
-
 // 输出string
 func (c *MemberCard) String() string {
-	return string(c.Formate())
+	return fmt.Sprintf("%v%v%.*d%.*d%v", c.MII, c.CPI, 3, c.CDI, 12, c.PII, c.IVC)
 }
 
 func(c *MemberCard) genCardIVC() {
@@ -83,11 +75,11 @@ func (c *MemberCard) GenQrStream() []byte {
 func genMemberCard(card *MemberCard, ormer orm.Ormer) (bool, errors.GlobalWaysError) {
 
 	if isCardExist(card, ormer) {
-		return false, errors.Newf(errors.CODE_DB_DATA_EXIST, errors.GlobalWaysErrors[errors.CODE_DB_DATA_EXIST])
+		return false, errors.New(errors.CODE_DB_DATA_EXIST)
 	}
 
 	if _, err := ormer.Insert(card); err != nil {
-		return false, errors.Newf(errors.CODE_DB_ERR_INSERT, errors.GlobalWaysErrors[errors.CODE_DB_ERR_INSERT], err)
+		return false, errors.Wrap(errors.CODE_DB_ERR_INSERT, err)
 	}
 
 	return true, errors.ErrorOK()
@@ -99,9 +91,9 @@ func isCardExist(card *MemberCard, ormer orm.Ormer) bool {
 }
 
 //批量生成
-func GenMemberCards(reqMsg *ReqNewMemberCards, ormer orm.Ormer) ([]CardNumber, errors.GlobalWaysError) {
+func GenMemberCards(reqMsg *ReqNewMemberCards, ormer orm.Ormer) ([]string, errors.GlobalWaysError) {
 
-	cardNumbers := make([]CardNumber, 0)
+	cardNumbers := make([]string, 0)
 	//获取数据库中最大的PII
 	maxPii, _ := getMaxPii(reqMsg.MII, reqMsg.CPI, reqMsg.CDI, ormer)
 
@@ -133,7 +125,7 @@ func GenMemberCards(reqMsg *ReqNewMemberCards, ormer orm.Ormer) ([]CardNumber, e
 		affactedTotal++
 		maxPii++
 
-		cardNumbers = append(cardNumbers, memberCard.Formate())
+		cardNumbers = append(cardNumbers, memberCard.String())
 	}
 
 	return cardNumbers, errors.ErrorOK()
@@ -150,7 +142,7 @@ func getMaxPii(mii, cpi byte, cdi uint16, ormer orm.Ormer) (uint64, errors.Globa
 
 	if err := ormer.QueryTable(memberCard).Filter("mii", mii).Filter("cpi", cpi).Filter("cdi", cdi).OrderBy("-pii").One(memberCard, "pii"); err != nil {
 		if err != orm.ErrMultiRows {
-			return 0, errors.Newf(errors.CODE_DB_ERR_GET, errors.GlobalWaysErrors[errors.CODE_DB_ERR_GET], err)
+			return 0, errors.Wrap(errors.CODE_DB_ERR_GET, err)
 		}
 	}
 
@@ -158,13 +150,13 @@ func getMaxPii(mii, cpi byte, cdi uint16, ormer orm.Ormer) (uint64, errors.Globa
 }
 
 // 获取会员卡列表
-func FindMemberCard(pager *page.Page, ormer orm.Ormer) ([]*MemberCard, errors.GlobalWaysError) {
+func FindMemberCard(pager *Page, ormer orm.Ormer) ([]*MemberCard, errors.GlobalWaysError) {
 	memberCardList := make([]*MemberCard, 0)
 
-	if num, err := ormer.QueryTable(new(MemberCard)).Limit(pager.Perpage, (pager.Current_page-1)*pager.Perpage).All(&memberCardList); err != nil {
-		return memberCardList, errors.Newf(errors.CODE_DB_ERR_FIND, errors.GlobalWaysErrors[errors.CODE_DB_ERR_FIND], err)
+	if num, err := ormer.QueryTable(new(MemberCard)).Limit(pager.Size, (pager.CurPage-1)*pager.Size).All(&memberCardList); err != nil {
+		return memberCardList, errors.Wrap(errors.CODE_DB_ERR_FIND, err)
 	} else if num == 0 {
-		return memberCardList, errors.New(errors.CODE_DB_ERR_NODATA, errors.GlobalWaysErrors[errors.CODE_DB_ERR_NODATA])
+		return memberCardList, errors.New(errors.CODE_DB_ERR_NODATA)
 	}
 
 	return memberCardList, errors.ErrorOK()
@@ -180,9 +172,9 @@ func GetMemberCardById(id int64, ormer orm.Ormer) (*MemberCard, errors.GlobalWay
 	err := ormer.Read(tmpCard)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			return nil, errors.New(errors.CODE_DB_ERR_NODATA, errors.GlobalWaysErrors[errors.CODE_DB_ERR_NODATA])
+			return nil, errors.New(errors.CODE_DB_ERR_NODATA)
 		} else {
-			return nil, errors.Newf(errors.CODE_DB_ERR_GET, errors.GlobalWaysErrors[errors.CODE_DB_ERR_GET], err)
+			return nil, errors.Wrap(errors.CODE_DB_ERR_GET, err)
 		}
 	}
 

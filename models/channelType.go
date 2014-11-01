@@ -22,11 +22,11 @@ func (c *ChannelType) TableName() string {
 func NewChannelType(channel *ChannelType, ormer orm.Ormer) (int64, errors.GlobalWaysError) {
 
 	if isChannelExist(channel, ormer) {
-		return 0, errors.New(errors.CODE_DB_DATA_EXIST, errors.GlobalWaysErrors[errors.CODE_DB_DATA_EXIST])
+		return 0, errors.New(errors.CODE_DB_DATA_EXIST)
 	}
 
 	if id, err := ormer.Insert(channel); err != nil {
-		return 0, errors.Newf(errors.CODE_DB_ERR_INSERT, errors.GlobalWaysErrors[errors.CODE_DB_ERR_INSERT], err)
+		return 0, errors.Wrap(errors.CODE_DB_ERR_INSERT, err)
 	} else {
 		return id, errors.ErrorOK()
 	}
@@ -42,9 +42,10 @@ func FindMemberCardChannel(ormer orm.Ormer) ([]*ChannelType, errors.GlobalWaysEr
 
 	channels := make([]*ChannelType, 0)
 
-	_, err := ormer.QueryTable(new(ChannelType)).All(&channels)
-	if err != nil {
-		return nil, errors.Newf(errors.CODE_DB_ERR_FIND, errors.GlobalWaysErrors[errors.CODE_DB_ERR_FIND], err)
+	if num, err := ormer.QueryTable(new(ChannelType)).All(&channels); err != nil {
+		return nil, errors.Wrap(errors.CODE_DB_ERR_FIND, err)
+	} else if num == 0 {
+		return nil, errors.New(errors.CODE_DB_ERR_NODATA)
 	}
 
 	return channels, errors.ErrorOK()
@@ -59,9 +60,9 @@ func GetChannelType(id int64, ormer orm.Ormer) (*ChannelType, errors.GlobalWaysE
 	err := ormer.Read(channelType)
 	if err != nil {
 		if err == orm.ErrNoRows {
-			return nil, errors.New(errors.CODE_DB_ERR_NODATA, errors.GlobalWaysErrors[errors.CODE_DB_ERR_NODATA])
+			return nil, errors.New(errors.CODE_DB_ERR_NODATA)
 		} else {
-			return nil, errors.Newf(errors.CODE_DB_ERR_GET, errors.GlobalWaysErrors[errors.CODE_DB_ERR_GET], err)
+			return nil, errors.Wrap(errors.CODE_DB_ERR_GET, err)
 		}
 	}
 
@@ -71,12 +72,12 @@ func GetChannelType(id int64, ormer orm.Ormer) (*ChannelType, errors.GlobalWaysE
 // 更新渠道
 func UpdateChannelType(channel *ChannelType, ormer orm.Ormer) (bool, errors.GlobalWaysError) {
 	if !isChannelExist(channel, ormer) {
-		return false, errors.New(errors.CODE_DB_ERR_NODATA, errors.GlobalWaysErrors[errors.CODE_DB_ERR_NODATA])
+		return false, errors.New(errors.CODE_DB_ERR_NODATA)
 	}
 
 	_, err := ormer.Update(channel)
 	if err != nil {
-		return false, errors.Newf(errors.CODE_DB_ERR_UPDATE, errors.GlobalWaysErrors[errors.CODE_DB_ERR_UPDATE], err)
+		return false, errors.Wrap(errors.CODE_DB_ERR_UPDATE, err)
 	}
 
 	return true, errors.ErrorOK()
