@@ -25,12 +25,12 @@ var (
 
 // 参数读取
 var (
-	dbDriver = beego.AppConfig.String("dbdriver")
-	userName = beego.AppConfig.String("dbuser")
-	userPass = beego.AppConfig.String("dbpass")
-	dbHost   = beego.AppConfig.String("dbhost")
-	dbName   = beego.AppConfig.String("dbname")
-	dbEncode = beego.AppConfig.String("dbencode")
+	dbDriver = beego.AppConfig.String(beego.RunMode + "::dbdriver")
+	userName = beego.AppConfig.String(beego.RunMode + "::dbuser")
+	userPass = beego.AppConfig.String(beego.RunMode + "::dbpass")
+	dbHost   = beego.AppConfig.String(beego.RunMode + "::dbhost")
+	dbName   = beego.AppConfig.String(beego.RunMode + "::dbname")
+	dbEncode = beego.AppConfig.String(beego.RunMode + "::dbencode")
 )
 
 func init() {
