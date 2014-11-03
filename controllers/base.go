@@ -23,21 +23,24 @@ type BaseController struct {
 // before exec logic, prepare something
 func (c *BaseController) Prepare() {
 	c.fieldErrors = make([]*models.FieldError, 0)
+
+	//prepare for enable gzip
+	c.Ctx.Output.EnableGzip = true
+
+	// handle schema error
+	c.handleConnSchemaError()
+}
+
+// api just only allow https connection, if not, throw errors
+func (c *BaseController) handleConnSchemaError() {
+	if !c.Ctx.Input.IsSecure() {
+		c.renderJson(models.NewCommonOutError(errors.New(errors.CODE_HTTP_ERR_NOT_HTTPS)))
+	}
 }
 
 // after exec logic, finish something
 func (c *BaseController) Finish() {
 	c.fieldErrors = c.fieldErrors[:0]
-}
-
-// parse params is wrong, if wrong, fill response with errors
-func (c *BaseController) isParamsWrong() bool {
-	return len(c.fieldErrors) != 0
-}
-
-// append a new parameter wrong info
-func (c *BaseController) appenWrongParams(err *models.FieldError) {
-	c.fieldErrors = append(c.fieldErrors, err)
 }
 
 // http json response
@@ -48,6 +51,7 @@ func (c *BaseController) renderJson(data interface {}) {
 
 // http png response
 func (c *BaseController) renderPng(data []byte) {
+	c.Ctx.Output.EnableGzip = false
 	c.setHttpContentType("image/png")
 	c.setHttpBody(data)
 }
@@ -92,4 +96,14 @@ func (c *BaseController) handleParamError() bool {
 	}
 
 	return false
+}
+
+// parse params is wrong, if wrong, fill response with errors
+func (c *BaseController) isParamsWrong() bool {
+	return len(c.fieldErrors) != 0
+}
+
+// append a new parameter wrong info
+func (c *BaseController) appenWrongParams(err *models.FieldError) {
+	c.fieldErrors = append(c.fieldErrors, err)
 }
