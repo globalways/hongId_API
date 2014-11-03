@@ -5,7 +5,6 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/astaxie/beego"
 	"net/http"
 	"hongId/models"
 	e "github.com/globalways/gws_utils_go/errors"
@@ -18,15 +17,21 @@ type MemberCardController struct {
 
 // @Title createMemberCards
 // @Description generate member card batch
-// @Param reqMemberCards body models.ReqNewMemberCards true "request param json"
-// @Success 201 {int[]} models.MemberCard.Id
+// @Param cnt query int true "used for generate membercard count, default is 0"
+// @Param memberCard body models.MemberCard true "request param json"
+// @Success 201 {object} models.MemberCard
 // @Failure 400 request body is invalid
 // @Failure 500 generate member card error
 // @router / [post]
 func (c *MemberCardController) Post() {
-	reqMemberCards := new(models.ReqNewMemberCards)
-	if err := json.Unmarshal(c.getHttpBody(), reqMemberCards); err != nil {
-		c.appenWrongParams(models.NewFieldError("reqNewMemberCards", err.Error()))
+	cardCnt, err := c.GetInt("cnt")
+	if err != nil {
+		c.appenWrongParams(models.NewFieldError("card cnt", err.Error()))
+	}
+
+	memberCard := new(models.MemberCard)
+	if err := json.Unmarshal(c.getHttpBody(), memberCard); err != nil {
+		c.appenWrongParams(models.NewFieldError("memberCard json", err.Error()))
 	}
 
 	// handle http request param
@@ -34,10 +39,12 @@ func (c *MemberCardController) Post() {
 		return
 	}
 
-	cardIds, gErr := models.GenMemberCards(reqMemberCards, models.Writter)
+	cards, gErr := models.GenMemberCards(memberCard, cardCnt, models.Writter)
 	if gErr.IsError() {
 		if gErr.GetCode() == e.CODE_DB_DATA_EXIST {
 			c.setHttpStatus(http.StatusOK)
+		} else if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+			c.setHttpStatus(http.StatusNotFound)
 		} else {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
@@ -46,18 +53,16 @@ func (c *MemberCardController) Post() {
 		return
 	}
 
-	// TODO 以一个产生创建活动的 POST 操作为例, 使用一个 HTTP 201 状态代码 然后包含一个 Location header 来指向新生资源的URL。
-	c.setHttpHeader("Location", c.combineUrl(beego.UrlFor("MemberCardController.Get", cardIds[0])))
 	c.setHttpStatus(http.StatusCreated)
-	c.renderJson(cardIds)
+	c.renderJson(cards)
 }
 
 // @Title getMemberCards
 // @Description get member card list by page & size
-// @Param page query int64 false "page number"
-// @Param size query int64 false "each page count"
+// @Param page query int64 true "page number"
+// @Param size query int64 true "each page count"
 // @Success 200 {object} models.MemberCard
-// @Failure 403 request url's parameter is invalid
+// @Failure 400 request url's parameter is invalid
 // @Failure 404 request resource not found
 // @Failure 500 get memberCard list wrong
 // @router / [get]

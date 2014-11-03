@@ -6,46 +6,35 @@ package models
 import (
 	"fmt"
 	"github.com/astaxie/beego/orm"
-	"time"
 	"github.com/globalways/gws_utils_go/algorith"
-	"github.com/globalways/gws_utils_go/qr"
 	"github.com/globalways/gws_utils_go/errors"
+	e "errors"
+	"github.com/globalways/gws_utils_go/qr"
+	"time"
 )
-
-// 请求新建会员卡参数
-type ReqNewMemberCards struct {
-	MII         byte
-	CPI         byte
-	CDI         uint16
-	ChannelType int64
-	ChannelId   int64
-	CardCnt     int64
-}
 
 const (
 	_DEFAULT_INSERT_ERR_CNT = 3
 )
 
-type EMemberCardStatus byte
-
 const (
-	EMemberCardStatus_Inactive EMemberCardStatus = iota + 1
+	EMemberCardStatus_Inactive byte = iota + 1
 	EMemberCardStatus_Active
 	EMemberCardStatus_Expired
 )
 
 type MemberCard struct {
 	Id          int64
-	MII         byte              `orm:"default(6);column(mii)"`  // 1     主要产业标识符（Major Industry Identifier (MII)）
-	CPI         byte              `orm:"default(32);column(cpi)"` // 2-3   公司标识符，默认: 32
-	CDI         uint16            `orm:"default(86);column(cdi)"` // 4-6   国家域标识符（Country Domain Identifier）
-	PII         uint64            `orm:"column(pii)"`             // 7-18  个人信息标识（Personal identifying information）
-	IVC         byte              `orm:"default(0);column(ivc)"`  // 19    验证码标识（Identity verification code）
-	ChannelType int64             `orm:"default(0);column(channel_type)"`
-	ChannelId   int64             `orm:"default(0);column(channel_id)"`
-	CardStatus  EMemberCardStatus `orm:"column(card_status)"`
-	Created     time.Time         `orm:"column(created);auto_now_add"`
-	Updated     time.Time         `orm:"column(updated);auto_now"`
+	MII         byte      `orm:"default(6);column(mii)"`  // 1     主要产业标识符（Major Industry Identifier (MII)）
+	CPI         byte      `orm:"default(32);column(cpi)"` // 2-3   公司标识符，默认: 32
+	CDI         uint16    `orm:"default(86);column(cdi)"` // 4-6   国家域标识符（Country Domain Identifier）
+	PII         uint64    `orm:"column(pii)"`             // 7-18  个人信息标识（Personal identifying information）
+	IVC         byte      `orm:"default(0);column(ivc)"`  // 19    验证码标识（Identity verification code）
+	ChannelType int64     `orm:"default(0);column(channel_type)"`
+	ChannelId   int64     `orm:"default(0);column(channel_id)"`
+	CardStatus  byte      `orm:"column(card_status)"`
+	Created     time.Time `orm:"column(created);auto_now_add"`
+	Updated     time.Time `orm:"column(updated);auto_now"`
 }
 
 func (c *MemberCard) TableName() string {
@@ -57,7 +46,7 @@ func (c *MemberCard) String() string {
 	return fmt.Sprintf("%v%v%.*d%.*d%v", c.MII, c.CPI, 3, c.CDI, 12, c.PII, c.IVC)
 }
 
-func(c *MemberCard) genCardIVC() {
+func (c *MemberCard) genCardIVC() {
 	c.IVC = algorith.GenLuhnCheckDigit([]byte(fmt.Sprintf("%v%v%.*d%.*d", c.MII, c.CPI, 3, c.CDI, 12, c.PII)))
 }
 
@@ -68,7 +57,7 @@ func (c *MemberCard) ValidateCard() bool {
 
 // 生成二维码png二进制流
 func (c *MemberCard) GenQrStream() []byte {
-	return qr.GenQRCode(c.String(), qr.L)
+	return qr.GenQRCode(c.String(), qr.H)
 }
 
 // 新增会员卡
@@ -91,16 +80,22 @@ func isCardExist(card *MemberCard, ormer orm.Ormer) bool {
 }
 
 //批量生成
-func GenMemberCards(reqMsg *ReqNewMemberCards, ormer orm.Ormer) ([]string, errors.GlobalWaysError) {
+func GenMemberCards(reqMsg *MemberCard, cardCnt int64, ormer orm.Ormer) ([]string, errors.GlobalWaysError) {
 
 	cardNumbers := make([]string, 0)
+
+	//判断channelType是否存在
+	if !isChannelExist(&ChannelType{Id: reqMsg.ChannelType}, ormer) {
+		return cardNumbers, errors.Wrap(errors.CODE_DB_ERR_NODATA, e.New("invalid channelType."))
+	}
+
 	//获取数据库中最大的PII
 	maxPii, _ := getMaxPii(reqMsg.MII, reqMsg.CPI, reqMsg.CDI, ormer)
 
 	affactedTotal := int64(1)
 	maxPii += 1
 	errCnt := 0
-	for affactedTotal <= reqMsg.CardCnt {
+	for affactedTotal <= cardCnt {
 		memberCard := &MemberCard{
 			MII:         reqMsg.MII,
 			CPI:         reqMsg.CPI,

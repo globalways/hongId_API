@@ -34,7 +34,9 @@ func NewChannelType(channel *ChannelType, ormer orm.Ormer) (int64, errors.Global
 
 // 检查渠道是否存在
 func isChannelExist(channel *ChannelType, ormer orm.Ormer) bool {
-	return ormer.QueryTable(new(ChannelType)).Filter("channel_name", channel.ChannelName).Exist()
+	cond := orm.NewCondition()
+	cond.Or("channel_name", channel.ChannelName).Or("id", channel.Id)
+	return ormer.QueryTable(new(ChannelType)).SetCond(cond).Exist()
 }
 
 // 查找渠道

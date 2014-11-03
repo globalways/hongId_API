@@ -29,7 +29,7 @@ func (c *ChannelTypeController) Post() {
 	channelType := new(models.ChannelType)
 	err := json.Unmarshal(c.getHttpBody(), channelType)
 	if err != nil {
-		c.appenWrongParams(models.NewFieldError("channelType", err.Error()))
+		c.appenWrongParams(models.NewFieldError("channelType json", err.Error()))
 	}
 
 	// handle http request param
@@ -51,7 +51,7 @@ func (c *ChannelTypeController) Post() {
 
 	channelType.Id = id
 
-	c.setHttpHeader("Location", c.combineUrl(beego.UrlFor("ChannelTypeController.Get", convert.Int642str(id))))
+	c.setHttpHeader("Location", c.combineUrl(beego.UrlFor("ChannelTypeController.Get", ":channelId", convert.Int642str(id))))
 	c.setHttpStatus(http.StatusCreated)
 	c.renderJson(channelType)
 }
@@ -82,7 +82,9 @@ func (c *ChannelTypeController) GetAll() {
 // @Description get channel by channelid
 // @Param channelId path int true "channel id"
 // @Success 200 {object} models.ChannelType
-// @Failure 403 :channelId is empty
+// @Failure 400 invalid http request param
+// @Failure 404 channel not found
+// @Failure 500 interval server error
 // @router /:channelId [get]
 func (c *ChannelTypeController) Get() {
 	channelId, err := c.GetInt(":channelId")
@@ -115,7 +117,7 @@ func (c *ChannelTypeController) Get() {
 // @Param channelId	path string	true "channel id"
 // @Param channelType body models.ChannelType true "after update's channelType info"
 // @Success 200 {object} models.ChannelType
-// @Failure 403 invalid http request param
+// @Failure 400 invalid http request param
 // @Failure 404 channeltype not found
 // @Failure 500 internal server error
 // @router /:channelId [put]
@@ -125,7 +127,6 @@ func (c *ChannelTypeController) Put() {
 	if err != nil {
 		c.appenWrongParams(models.NewFieldError("channelId", err.Error()))
 	}
-
 
 	channel := new(models.ChannelType)
 	err = json.Unmarshal(c.getHttpBody(), channel)
