@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"github.com/astaxie/beego"
 	"hongId/models"
-	e "github.com/globalways/gws_utils_go/errors"
+	e "github.com/globalways/utils_go/errors"
 	"net/http"
-	"github.com/globalways/gws_utils_go/convert"
+	"github.com/globalways/utils_go/convert"
 )
 
 // channelType API
@@ -45,7 +45,7 @@ func (c *ChannelTypeController) Post() {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutError(gErr))
+		c.renderJson(models.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -71,7 +71,7 @@ func (c *ChannelTypeController) GetAll() {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutError(gErr))
+		c.renderJson(models.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -105,7 +105,7 @@ func (c *ChannelTypeController) Get() {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutError(gErr))
+		c.renderJson(models.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -153,7 +153,7 @@ func (c *ChannelTypeController) Put() {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutError(gErr))
+		c.renderJson(models.NewCommonOutRsp(gErr))
 		return
 	}
 

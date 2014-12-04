@@ -34,6 +34,20 @@ func init() {
 			[]string{"put"},
 			nil})
 
+	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
+		beego.ControllerComments{
+			"TelAuthCode",
+			`/telAuthCode`,
+			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
+		beego.ControllerComments{
+			"TelAuthCodeAtk",
+			`/telAuthCode/atk`,
+			[]string{"post"},
+			nil})
+
 	beego.GlobalControllerRouter["hongId/controllers:MemberCardController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberCardController"],
 		beego.ControllerComments{
 			"Post",

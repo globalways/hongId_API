@@ -3,9 +3,9 @@
 // that can be found in the LICENSE file.
 package models
 
-import "github.com/globalways/gws_utils_go/errors"
+import "github.com/globalways/utils_go/errors"
 
-type CommonError struct {
+type CommonResponse struct {
 	Code        int    `json:code`
 	Message     string `json:message`
 	Description string `jsong:description`
@@ -22,13 +22,13 @@ type FieldErrors struct {
 	Errors  []*FieldError `json:errors`
 }
 
-// new common error
-func NewCommonOutError(gErr errors.GlobalWaysError) *CommonError {
+// new common response
+func NewCommonOutRsp(gErr errors.GlobalWaysError) *CommonResponse {
 	code := gErr.GetCode()
 	msg := gErr.GetMessage()
 	desc := gErr.GetInner().Error()
 
-	return &CommonError{
+	return &CommonResponse{
 		Code:        code,
 		Message:     msg,
 		Description: desc,

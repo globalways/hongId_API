@@ -5,7 +5,7 @@ package models
 
 import (
 	"github.com/astaxie/beego/orm"
-	"github.com/globalways/gws_utils_go/errors"
+	"github.com/globalways/utils_go/errors"
 )
 
 type ChannelType struct {

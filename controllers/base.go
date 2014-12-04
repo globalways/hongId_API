@@ -5,14 +5,20 @@ package controllers
 
 import (
 	"github.com/astaxie/beego"
-	"hongId/models"
 	"github.com/astaxie/beego/context"
+	"github.com/astaxie/beego/validation"
+	"github.com/globalways/utils_go/errors"
+	"github.com/globalways/utils_go/smsmgr"
+	"hongId/models"
 	"net/http"
-	"github.com/globalways/gws_utils_go/errors"
+	"github.com/astaxie/beego/logs"
 )
 
 var (
-	_ context.Context
+	_     context.Context
+	_     logs.BeeLogger
+	valid = new(validation.Validation)
+	sms   = smsmgr.NewDefaultSmsManager()
 )
 
 type BaseController struct {
@@ -23,18 +29,19 @@ type BaseController struct {
 // before exec logic, prepare something
 func (c *BaseController) Prepare() {
 	c.fieldErrors = make([]*models.FieldError, 0)
+	valid.Clear()
 
 	//prepare for enable gzip
 	c.Ctx.Output.EnableGzip = true
 
 	// handle schema error
-	c.handleConnSchemaError()
+	//	c.handleConnSchemaError()
 }
 
 // api just only allow https connection, if not, throw errors
 func (c *BaseController) handleConnSchemaError() {
 	if !c.Ctx.Input.IsSecure() {
-		c.renderJson(models.NewCommonOutError(errors.New(errors.CODE_HTTP_ERR_NOT_HTTPS)))
+		c.renderJson(models.NewCommonOutRsp(errors.New(errors.CODE_HTTP_ERR_NOT_HTTPS)))
 	}
 }
 
@@ -44,7 +51,7 @@ func (c *BaseController) Finish() {
 }
 
 // http json response
-func (c *BaseController) renderJson(data interface {}) {
+func (c *BaseController) renderJson(data interface{}) {
 	c.Data["json"] = data
 	c.ServeJson()
 }
@@ -73,6 +80,7 @@ func (c *BaseController) setHttpBody(body []byte) {
 
 // get http request body
 func (c *BaseController) getHttpBody() []byte {
+	beego.BeeLogger.Debug("httpBody: %v", c.Ctx.Input.RequestBody)
 	return c.Ctx.Input.RequestBody
 }
 
@@ -92,6 +100,10 @@ func (c *BaseController) handleParamError() bool {
 		c.setHttpStatus(http.StatusBadRequest)
 		c.renderJson(models.NewFiledErrors(errors.CODE_HTTP_ERR_INVALID_PARAMS, c.fieldErrors))
 
+		for _, err := range c.fieldErrors {
+			beego.BeeLogger.Debug("filedError: %v", err)
+		}
+
 		return true
 	}
 
@@ -106,4 +118,25 @@ func (c *BaseController) isParamsWrong() bool {
 // append a new parameter wrong info
 func (c *BaseController) appenWrongParams(err *models.FieldError) {
 	c.fieldErrors = append(c.fieldErrors, err)
+}
+
+// valid paramemter
+func (c *BaseController) validation(obj interface{}) {
+	b, err := valid.Valid(obj)
+	if err != nil {
+		c.appenWrongParams(models.NewFieldError("valid", err.Error()))
+	}
+
+	if !b {
+		for _, err := range valid.Errors {
+			c.appenWrongParams(models.NewFieldError(err.Key, err.Message))
+		}
+	}
+}
+
+// generate sms auth code
+func (c *BaseController) genSmsAuthCode(tel string) (string, error) {
+	code, err := sms.GenSmsAuthCode(tel)
+	beego.BeeLogger.Debug("generate sms auth code: %v", code)
+	return code, err
 }

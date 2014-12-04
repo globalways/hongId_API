@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"hongId/models"
-	e "github.com/globalways/gws_utils_go/errors"
+	e "github.com/globalways/utils_go/errors"
 )
 
 // MemberCard API
@@ -49,7 +49,7 @@ func (c *MemberCardController) Post() {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutError(gErr))
+		c.renderJson(models.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -98,7 +98,7 @@ func (c *MemberCardController) GetAll() {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutError(gErr))
+		c.renderJson(models.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -132,7 +132,7 @@ func (c *MemberCardController) Get() {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutError(gErr))
+		c.renderJson(models.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -166,7 +166,7 @@ func (c *MemberCardController) GetQrCode() {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutError(gErr))
+		c.renderJson(models.NewCommonOutRsp(gErr))
 		return
 	}
 

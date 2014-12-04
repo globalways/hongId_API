@@ -1,0 +1,8 @@
+{
+  "CDI": 86,
+  "CPI": 32,
+  "ChannelId": 1,
+  "ChannelType": 1,
+  "MII": 6
+}
+

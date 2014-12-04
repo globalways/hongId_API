@@ -6,11 +6,11 @@ package models
 import (
 	"fmt"
 	"github.com/astaxie/beego/orm"
-	"github.com/globalways/gws_utils_go/algorith"
-	"github.com/globalways/gws_utils_go/errors"
 	e "errors"
-	"github.com/globalways/gws_utils_go/qr"
 	"time"
+	"github.com/globalways/utils_go/algorith"
+	"github.com/globalways/utils_go/qr"
+	errors "github.com/globalways/utils_go/errors"
 )
 
 const (
@@ -35,6 +35,7 @@ type MemberCard struct {
 	CardStatus  byte      `orm:"column(card_status)"`
 	Created     time.Time `orm:"column(created);auto_now_add"`
 	Updated     time.Time `orm:"column(updated);auto_now"`
+	Member     *Member   `orm:"column(member);rel(fk);null;on_delete(set_null)"`
 }
 
 func (c *MemberCard) TableName() string {
