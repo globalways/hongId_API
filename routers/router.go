@@ -14,28 +14,17 @@ import (
 )
 
 func init() {
-	// 会员卡相关router
-	memberCard := beego.NewNamespace("/v1",
+	ns := beego.NewNamespace("/v1",
 		beego.NSNamespace("/memberCards",
 			beego.NSInclude(
 				&controllers.MemberCardController{},
 			),
 		),
-		beego.NSNamespace("/channelTypes",
+		beego.NSNamespace("/members",
 			beego.NSInclude(
-				&controllers.ChannelTypeController{},
+			&controllers.MemberController{},
 			),
 		),
 	)
-	beego.AddNamespace(memberCard)
-
-	// 会员相关router
-	member := beego.NewNamespace("/v1",
-		beego.NSNamespace("/hongId",
-			beego.NSInclude(
-				&controllers.MemberController{},
-			),
-		),
-	)
-	beego.AddNamespace(member)
+	beego.AddNamespace(ns)
 }

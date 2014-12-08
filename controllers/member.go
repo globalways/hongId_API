@@ -17,6 +17,8 @@ import (
 	"encoding/json"
 	"github.com/globalways/utils_go/errors"
 	"hongId/models"
+	"net/http"
+	hm "github.com/globalways/hongId_models/models"
 )
 
 // 会员 API
@@ -24,78 +26,132 @@ type MemberController struct {
 	BaseController
 }
 
-/**
-用户手机号注册流程
-  1、app发送手机号到server [post]
-  2、svrver发送请求到短信平台，发送短信，给app返回response信息 ok ? error
-  3、app输入验证码，发送验证码&手机号到server [post]
-  4、server验证用户输入与短信平台的验证码是否一致 ok ? error
-  5、如果error，app显示错误信息，重新请求验证码 重复 1 - 4
-  6、验证成功，app跳转下一界面，输入昵称 & 密码 & 重复密码，提交server [post]
-  7、server完成注册
-*/
-
-type MemberTel struct {
-	Tel string `valid:"Mobile"`
+// app 手机注册
+type ReqRegisterMemberByTel struct {
+	Tel string `json:"tel"`
 }
 
-// @Title telAuthCodeGenerator
-// @Description 手机号检查并生成手机验证码
-// @Param tel body MemberTelPhone true "用户预注册的手机号"
-// @Success 200 {object} controllers.MemberTelPhone
-// @Failure 400 request body is invalid
-// @Failure 500 generate member card error
-// @router /telAuthCode [post]
-func (c *MemberController) TelAuthCode() {
-	// 解析httpbody
-	memberTel := new(MemberTel)
-	if err := json.Unmarshal(c.getHttpBody(), memberTel); err != nil {
-		c.appenWrongParams(models.NewFieldError("memberTelPhone json", err.Error()))
+// @router /register/tel [post]
+func (c *MemberController) RegisterByTel() {
+	reqMsg := new(ReqRegisterMemberByTel)
+	if err := json.Unmarshal(c.getHttpBody(), reqMsg); err != nil {
+		c.appenWrongParams(errors.NewFieldError("reqBody", err.Error()))
 	}
 
-	// 验证手机号正确性
-	c.validation(memberTel)
+	// validation
+	c.validation(reqMsg)
 
-	// handle http request param
+	// handle error
 	if c.handleParamError() {
 		return
 	}
 
-	// TODO 请求短信网关
-	_, err := c.genSmsAuthCode(memberTel.Tel)
+	// 根据手机号查找会员信息
+	var globalWaysErr errors.GlobalWaysError
+	member, gErr := hm.GetMemberByTel(reqMsg.Tel, models.Reader)
+	switch gErr.GetCode() {
+	case errors.CODE_DB_ERR_GET: // 系统内部错误
+		c.setHttpStatus(http.StatusInternalServerError)
+		globalWaysErr = gErr
+	case errors.CODE_DB_ERR_NODATA: // 手机号尚未注册
+		if _, gE := hm.RegisterMemberByTel(1, reqMsg.Tel, models.Writter); gE.IsError() { //注册失败
+			c.setHttpStatus(http.StatusInternalServerError)
+			globalWaysErr = gE
+		} else { // 注册成功
+			c.setHttpStatus(http.StatusCreated)
+			globalWaysErr = errors.ErrorOK()
+		}
+	case errors.CODE_SUCCESS: // 手机号已经存在
+		if member.Status != hm.EMemberStatus_Req { // 手机号已经被其他用户使用
+			c.setHttpStatus(http.StatusOK)
+			globalWaysErr = errors.New(errors.CODE_BISS_ERR_TEL_ALREADY_IN)
+		} else {
+			c.setHttpStatus(http.StatusCreated)
+			globalWaysErr = errors.ErrorOK()
+		}
+	}
+
+	c.renderJson(errors.NewCommonOutRsp(globalWaysErr))
+}
+
+// @router /id/:memberId [put]
+func (c *MemberController) UpdateALL() {
+	member := new(hm.Member)
+	if err := json.Unmarshal(c.getHttpBody(), member); err != nil {
+		c.appenWrongParams(errors.NewFieldError("reqBody", err.Error()))
+	}
+
+	memberId, err := c.GetInt64(":memberId")
 	if err != nil {
-		c.renderJson(models.NewCommonOutRsp(errors.New(errors.CODE_BISS_ERR_SMS_FAIL)))
-		return
+		c.appenWrongParams(errors.NewFieldError(":memberId", err.Error()))
 	}
 
-	c.renderJson(models.NewCommonOutRsp(errors.ErrorOK()))
-}
-
-type MemberTelAtk struct {
-	Tel  string `valid:"Mobile"`
-	Code string `valid:"Required"`
-}
-
-// @router /telAuthCode/atk [post]
-func (c *MemberController) TelAuthCodeAtk() {
-	// 解析httpbody
-	memberTelAtk := new(MemberTelAtk)
-	if err := json.Unmarshal(c.getHttpBody(), memberTelAtk); err != nil {
-		c.appenWrongParams(models.NewFieldError("memberTelAtk json", err.Error()))
+	if memberId != member.Id {
+		c.appenWrongParams(errors.NewFieldError(":memberId", "memberId didn't match."))
 	}
 
-	// 验证手机号
-	c.validation(memberTelAtk)
-
-	// handle http request param
+	// handle error
 	if c.handleParamError() {
 		return
 	}
 
-	// 验证手机号是否已被注册
-	if b := models.IsTelRegistered(memberTelAtk.Tel); b {
-		c.renderJson(models.NewCommonOutRsp(errors.New(errors.CODE_BISS_ERR_TEL_ALREADY_IN)))
+	var globalWaysErr errors.GlobalWaysError
+	gErr := hm.UpdateMember(member, models.Writter)
+	switch gErr.GetCode() {
+	case errors.CODE_DB_ERR_UPDATE: // 系统内部错误
+		c.setHttpStatus(http.StatusInternalServerError)
+		globalWaysErr = gErr
+	case errors.CODE_SUCCESS: // 更新成功
+		globalWaysErr = errors.ErrorOK()
+	}
+
+	c.renderJson(errors.NewCommonOutRsp(globalWaysErr))
+}
+
+// @router /id/:memberId [patch]
+func (c *MemberController) Update() {
+	member := new(hm.Member)
+	if err := json.Unmarshal(c.getHttpBody(), member); err != nil {
+		c.appenWrongParams(errors.NewFieldError("reqBody", err.Error()))
+	}
+
+	memberId, err := c.GetInt64(":memberId")
+	if err != nil {
+		c.appenWrongParams(errors.NewFieldError(":memberId", err.Error()))
+	}
+
+	if memberId != member.Id {
+		c.appenWrongParams(errors.NewFieldError(":memberId", "memberId didn't match."))
+	}
+
+	// handle error
+	if c.handleParamError() {
 		return
 	}
 
+	var globalWaysErr errors.GlobalWaysError
+	gErr := hm.UpdateMemberById(memberId, member, models.Writter)
+	switch gErr.GetCode() {
+	case errors.CODE_DB_ERR_UPDATE: // 系统内部错误
+		c.setHttpStatus(http.StatusInternalServerError)
+		globalWaysErr = gErr
+	case errors.CODE_SUCCESS: // 更新成功
+		globalWaysErr = errors.ErrorOK()
+	}
+
+	c.renderJson(errors.NewCommonOutRsp(globalWaysErr))
+}
+
+// @router /tel/:tel [get]
+func (c *MemberController) GetByTel() {
+	tel := c.GetString(":tel")
+
+	member, gErr := hm.GetMemberByTel(tel, models.Reader)
+	if gErr.IsError() {
+		c.setHttpStatus(http.StatusInternalServerError)
+		c.renderJson(errors.NewCommonOutRsp(gErr))
+		return
+	}
+
+	c.renderJson(member)
 }

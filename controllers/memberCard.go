@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"hongId/models"
-	e "github.com/globalways/utils_go/errors"
+	"github.com/globalways/utils_go/errors"
+	hm "github.com/globalways/hongId_models/models"
+	"github.com/globalways/utils_go/page"
 )
 
 // MemberCard API
@@ -24,14 +26,14 @@ type MemberCardController struct {
 // @Failure 500 generate member card error
 // @router / [post]
 func (c *MemberCardController) Post() {
-	cardCnt, err := c.GetInt("cnt")
+	cardCnt, err := c.GetInt64("cnt")
 	if err != nil {
-		c.appenWrongParams(models.NewFieldError("card cnt", err.Error()))
+		c.appenWrongParams(errors.NewFieldError("card cnt", err.Error()))
 	}
 
-	memberCard := new(models.MemberCard)
+	memberCard := new(hm.MemberCard)
 	if err := json.Unmarshal(c.getHttpBody(), memberCard); err != nil {
-		c.appenWrongParams(models.NewFieldError("memberCard json", err.Error()))
+		c.appenWrongParams(errors.NewFieldError("memberCard json", err.Error()))
 	}
 
 	// handle http request param
@@ -39,17 +41,17 @@ func (c *MemberCardController) Post() {
 		return
 	}
 
-	cards, gErr := models.GenMemberCards(memberCard, cardCnt, models.Writter)
+	cards, gErr := hm.GenMemberCards(memberCard, cardCnt, models.Writter)
 	if gErr.IsError() {
-		if gErr.GetCode() == e.CODE_DB_DATA_EXIST {
+		if gErr.GetCode() == errors.CODE_DB_DATA_EXIST {
 			c.setHttpStatus(http.StatusOK)
-		} else if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+		} else if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
 			c.setHttpStatus(http.StatusNotFound)
 		} else {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutRsp(gErr))
+		c.renderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -69,13 +71,13 @@ func (c *MemberCardController) Post() {
 func (c *MemberCardController) GetAll() {
 
 	var pageNum, pageSize int64
-	if page, err := c.GetInt("page"); err != nil {
-		c.appenWrongParams(models.NewFieldError("page", err.Error()))
+	if page, err := c.GetInt64("page"); err != nil {
+		c.appenWrongParams(errors.NewFieldError("page", err.Error()))
 	} else {
 		pageNum = page
 	}
-	if size, err := c.GetInt("size"); err != nil {
-		c.appenWrongParams(models.NewFieldError("size", err.Error()))
+	if size, err := c.GetInt64("size"); err != nil {
+		c.appenWrongParams(errors.NewFieldError("size", err.Error()))
 	} else {
 		pageSize = size
 	}
@@ -85,20 +87,17 @@ func (c *MemberCardController) GetAll() {
 		return
 	}
 
-	pager := &models.Page{
-		Size: pageSize,
-		CurPage: pageNum,
-	}
+	pager := page.NewDBPaginator(int(pageNum), int(pageSize))
 
-	cards, gErr := models.FindMemberCard(pager, models.Reader)
+	cards, gErr := hm.FindMemberCard(pager, models.Reader)
 	if gErr.IsError() {
-		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
 			c.setHttpStatus(http.StatusNotFound)
 		} else {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutRsp(gErr))
+		c.renderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -114,9 +113,9 @@ func (c *MemberCardController) GetAll() {
 // @Failure 500 internal server error
 // @router /:id [get]
 func (c *MemberCardController) Get() {
-	cardId, err := c.GetInt(":id")
+	cardId, err := c.GetInt64(":id")
 	if err != nil {
-		c.appenWrongParams(models.NewFieldError("memberCardId", err.Error()))
+		c.appenWrongParams(errors.NewFieldError("memberCardId", err.Error()))
 	}
 
 	// handle http request param
@@ -124,15 +123,15 @@ func (c *MemberCardController) Get() {
 		return
 	}
 
-	card, gErr := models.GetMemberCardById(cardId, models.Reader)
+	card, gErr := hm.GetMemberCardById(cardId, models.Reader)
 	if gErr.IsError() {
-		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
 			c.setHttpStatus(http.StatusNotFound)
 		} else {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutRsp(gErr))
+		c.renderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
@@ -148,9 +147,9 @@ func (c *MemberCardController) Get() {
 // @Failure 500 internal server error
 // @router /:id/qrcode [get]
 func (c *MemberCardController) GetQrCode() {
-	cardId, err := c.GetInt(":id")
+	cardId, err := c.GetInt64(":id")
 	if err != nil {
-		c.appenWrongParams(models.NewFieldError("memberCardId", err.Error()))
+		c.appenWrongParams(errors.NewFieldError("memberCardId", err.Error()))
 	}
 
 	// handle http request param
@@ -158,15 +157,15 @@ func (c *MemberCardController) GetQrCode() {
 		return
 	}
 
-	card, gErr := models.GetMemberCardById(cardId, models.Reader)
+	card, gErr := hm.GetMemberCardById(cardId, models.Reader)
 	if gErr.IsError() {
-		if gErr.GetCode() == e.CODE_DB_ERR_NODATA {
+		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
 			c.setHttpStatus(http.StatusNotFound)
 		} else {
 			c.setHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(models.NewCommonOutRsp(gErr))
+		c.renderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 

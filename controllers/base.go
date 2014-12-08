@@ -9,7 +9,6 @@ import (
 	"github.com/astaxie/beego/validation"
 	"github.com/globalways/utils_go/errors"
 	"github.com/globalways/utils_go/smsmgr"
-	"hongId/models"
 	"net/http"
 	"github.com/astaxie/beego/logs"
 )
@@ -23,12 +22,12 @@ var (
 
 type BaseController struct {
 	beego.Controller
-	fieldErrors []*models.FieldError
+	fieldErrors []*errors.FieldError
 }
 
 // before exec logic, prepare something
 func (c *BaseController) Prepare() {
-	c.fieldErrors = make([]*models.FieldError, 0)
+	c.fieldErrors = make([]*errors.FieldError, 0)
 	valid.Clear()
 
 	//prepare for enable gzip
@@ -41,7 +40,7 @@ func (c *BaseController) Prepare() {
 // api just only allow https connection, if not, throw errors
 func (c *BaseController) handleConnSchemaError() {
 	if !c.Ctx.Input.IsSecure() {
-		c.renderJson(models.NewCommonOutRsp(errors.New(errors.CODE_HTTP_ERR_NOT_HTTPS)))
+		c.renderJson(errors.NewCommonOutRsp(errors.New(errors.CODE_HTTP_ERR_NOT_HTTPS)))
 	}
 }
 
@@ -98,7 +97,7 @@ func (c *BaseController) combineUrl(router string) string {
 func (c *BaseController) handleParamError() bool {
 	if c.isParamsWrong() {
 		c.setHttpStatus(http.StatusBadRequest)
-		c.renderJson(models.NewFiledErrors(errors.CODE_HTTP_ERR_INVALID_PARAMS, c.fieldErrors))
+		c.renderJson(errors.NewFiledErrors(errors.CODE_HTTP_ERR_INVALID_PARAMS, c.fieldErrors))
 
 		for _, err := range c.fieldErrors {
 			beego.BeeLogger.Debug("filedError: %v", err)
@@ -116,7 +115,7 @@ func (c *BaseController) isParamsWrong() bool {
 }
 
 // append a new parameter wrong info
-func (c *BaseController) appenWrongParams(err *models.FieldError) {
+func (c *BaseController) appenWrongParams(err *errors.FieldError) {
 	c.fieldErrors = append(c.fieldErrors, err)
 }
 
@@ -124,12 +123,12 @@ func (c *BaseController) appenWrongParams(err *models.FieldError) {
 func (c *BaseController) validation(obj interface{}) {
 	b, err := valid.Valid(obj)
 	if err != nil {
-		c.appenWrongParams(models.NewFieldError("valid", err.Error()))
+		c.appenWrongParams(errors.NewFieldError("valid", err.Error()))
 	}
 
 	if !b {
 		for _, err := range valid.Errors {
-			c.appenWrongParams(models.NewFieldError(err.Key, err.Message))
+			c.appenWrongParams(errors.NewFieldError(err.Key, err.Message))
 		}
 	}
 }
