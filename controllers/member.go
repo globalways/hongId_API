@@ -29,6 +29,7 @@ type MemberController struct {
 // app 手机注册
 type ReqRegisterMemberByTel struct {
 	Tel string `json:"tel"`
+	Group int64 `json:"group"`
 }
 
 // @router /register/tel [post]
@@ -54,7 +55,7 @@ func (c *MemberController) RegisterByTel() {
 		c.setHttpStatus(http.StatusInternalServerError)
 		globalWaysErr = gErr
 	case errors.CODE_DB_ERR_NODATA: // 手机号尚未注册
-		if _, gE := hm.RegisterMemberByTel(1, reqMsg.Tel, models.Writter); gE.IsError() { //注册失败
+		if _, gE := hm.RegisterMemberByTel(reqMsg.Group, reqMsg.Tel, models.Writter); gE.IsError() { //注册失败
 			c.setHttpStatus(http.StatusInternalServerError)
 			globalWaysErr = gE
 		} else { // 注册成功
@@ -154,4 +155,30 @@ func (c *MemberController) GetByTel() {
 	}
 
 	c.renderJson(member)
+}
+
+type ReqGenMember struct {
+	MinNo  int64 `json:"min"`
+	MaxNo  int64 `json:"max"`
+	Count  int64 `json:"count"`
+	Group  int64 `json:"group"`
+}
+
+// curl -i -H "Content-Type: application/json" -d '{"min":10000,"max":99999,"count":1000,"group":1}' 127.0.0.1:8081/v1/members
+// curl -i -H "Content-Type: application/json" -d '{"min":10000,"max":99999,"count":1000,"group":1}' 123.57.132.7:8081/v1/members
+// @router / [post]
+func (c *MemberController) SysGenMembers() {
+
+	reqMsg := new(ReqGenMember)
+	if err := json.Unmarshal(c.getHttpBody(), reqMsg); err != nil {
+		c.appenWrongParams(errors.NewFieldError("reqBody", err.Error()))
+	}
+
+	if c.handleParamError() {
+		return
+	}
+
+	affactTotal := hm.GenMembers(reqMsg.MinNo, reqMsg.MaxNo, reqMsg.Count, reqMsg.Group, models.Writter)
+
+	c.renderJson(affactTotal)
 }

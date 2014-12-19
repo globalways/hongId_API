@@ -36,8 +36,6 @@ var (
 
 func init() {
 
-	beego.BeeLogger.Debug(fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s", userName, userPass, dbHost, dbName, dbEncode))
-
 	// 注册模型
 	orm.RegisterModelWithPrefix("", new(MemberProfile), new(MemberCard), new(Member), new(MemberGroup), new(MemberGrowth))
 

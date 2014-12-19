@@ -18,15 +18,10 @@ type MemberGroupController struct {
 	BaseController
 }
 
-// @Title createChannelType
-// @Description generate a channel type
-// @Param	channelType		body 	models.ChannelType true		"channel type json param"
-// @Success 201 {object} models.ChannelType
-// @Failure 200 channelType exist already
-// @Failure 400 invalid http request param
-// @Failure 500 internal server error
+// curl -i -H "Content-Type: application/json" -d '{"GroupName":"APP会员","GroupDesc":"APP会员哟","Contribution":0,"Status":1}' 127.0.0.1:8081/v1/memberGroups
+// curl -i -H "Content-Type: application/json" -d '{"GroupName":"APP会员","GroupDesc":"APP会员哟","Contribution":0,"Status":1}' http://123.57.132.7:8081/v1/memberGroups
 // @router / [post]
-func (c *MemberGroupController) Post() {
+func (c *MemberGroupController) NewGroup() {
 	group := new(hm.MemberGroup)
 	err := json.Unmarshal(c.getHttpBody(), group)
 	if err != nil {
@@ -52,18 +47,13 @@ func (c *MemberGroupController) Post() {
 
 	group.Id = id
 
-	c.setHttpHeader("Location", c.combineUrl(beego.UrlFor("MemberGroupController.Get", ":groupId", convert.Int642str(id))))
+	c.setHttpHeader("Location", c.combineUrl(beego.UrlFor("MemberGroupController.GetGroup", ":groupId", convert.Int642str(id))))
 	c.setHttpStatus(http.StatusCreated)
 	c.renderJson(group)
 }
 
-// @Title GetChannels
-// @Description get all the channels
-// @Success 200 {object} models.ChannelType
-// @Failure 404 channel type list is blank
-// @Failure 500 internal server error
 // @router / [get]
-func (c *MemberGroupController) GetAll() {
+func (c *MemberGroupController) GetGroupALL() {
 	groups, gErr := hm.FindMemberGroup(models.Reader)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
@@ -79,18 +69,11 @@ func (c *MemberGroupController) GetAll() {
 	c.renderJson(groups)
 }
 
-// @Title GetChannel
-// @Description get channel by channelid
-// @Param channelId path int true "channel id"
-// @Success 200 {object} models.ChannelType
-// @Failure 400 invalid http request param
-// @Failure 404 channel not found
-// @Failure 500 interval server error
 // @router /:groupId [get]
-func (c *MemberGroupController) Get() {
+func (c *MemberGroupController) GetGroup() {
 	groupId, err := c.GetInt64(":groupId")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError("groupId", err.Error()))
+		c.appenWrongParams(errors.NewFieldError(":groupId", err.Error()))
 	}
 
 	// handle http request param
@@ -113,17 +96,8 @@ func (c *MemberGroupController) Get() {
 	c.renderJson(group)
 }
 
-// @Title updateChannel
-// @Description update channel
-// @Param channelId	path string	true "channel id"
-// @Param channelType body models.ChannelType true "after update's channelType info"
-// @Success 200 {object} models.ChannelType
-// @Failure 400 invalid http request param
-// @Failure 404 channeltype not found
-// @Failure 500 internal server error
 // @router /:groupId [put]
-func (c *MemberGroupController) Put() {
-
+func (c *MemberGroupController) UpdateALL() {
 	groupId, err := c.GetInt64(":groupId")
 	if err != nil {
 		c.appenWrongParams(errors.NewFieldError("groupId", err.Error()))
@@ -135,9 +109,7 @@ func (c *MemberGroupController) Put() {
 		c.appenWrongParams(errors.NewFieldError("group Json", err.Error()))
 	}
 
-	if group.Id == 0 {
-		group.Id = groupId
-	} else if group.Id != groupId {
+	if group.Id != groupId {
 		c.appenWrongParams(errors.NewFieldError("groupId", "path groupId & json groupId didn't match."))
 	}
 

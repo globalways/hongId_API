@@ -22,7 +22,12 @@ func init() {
 		),
 		beego.NSNamespace("/members",
 			beego.NSInclude(
-			&controllers.MemberController{},
+				&controllers.MemberController{},
+			),
+		),
+		beego.NSNamespace("/memberGroups",
+			beego.NSInclude(
+				&controllers.MemberGroupController{},
 			),
 		),
 	)
