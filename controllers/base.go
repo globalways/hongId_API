@@ -6,18 +6,28 @@ package controllers
 import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
+	"github.com/astaxie/beego/logs"
 	"github.com/astaxie/beego/validation"
 	"github.com/globalways/utils_go/errors"
 	"github.com/globalways/utils_go/smsmgr"
+	"github.com/mreiferson/httpclient"
+	"io"
+	"io/ioutil"
 	"net/http"
-	"github.com/astaxie/beego/logs"
+	"time"
 )
 
 var (
-	_     context.Context
-	_     logs.BeeLogger
-	valid = new(validation.Validation)
-	sms   = smsmgr.NewDefaultSmsManager()
+	_         context.Context
+	_         logs.BeeLogger
+	valid     = new(validation.Validation)
+	sms       = smsmgr.NewDefaultSmsManager()
+	transport = &httpclient.Transport{
+	ConnectTimeout:        1 * time.Second,
+	RequestTimeout:        10 * time.Second,
+	ResponseHeaderTimeout: 5 * time.Second,
+}
+	client = &http.Client{Transport: transport}
 )
 
 type BaseController struct {
@@ -62,6 +72,11 @@ func (c *BaseController) renderPng(data []byte) {
 	c.setHttpBody(data)
 }
 
+// http internal error
+func (c *BaseController) renderInternalError() {
+	c.renderJson(errors.NewClientRsp(errors.CODE_SYS_ERR_BASE))
+}
+
 // set http status
 func (c *BaseController) setHttpStatus(status int) {
 	c.Ctx.Output.SetStatus(status)
@@ -79,7 +94,6 @@ func (c *BaseController) setHttpBody(body []byte) {
 
 // get http request body
 func (c *BaseController) getHttpBody() []byte {
-	beego.BeeLogger.Debug("httpBody: %v", c.Ctx.Input.RequestBody)
 	return c.Ctx.Input.RequestBody
 }
 
@@ -96,8 +110,7 @@ func (c *BaseController) combineUrl(router string) string {
 // handle http request param error
 func (c *BaseController) handleParamError() bool {
 	if c.isParamsWrong() {
-		c.setHttpStatus(http.StatusBadRequest)
-		c.renderJson(errors.NewFiledErrors(errors.CODE_HTTP_ERR_INVALID_PARAMS, c.fieldErrors))
+		c.renderJson(errors.NewClientRspf(errors.CODE_HTTP_ERR_INVALID_PARAMS, c.fieldErrors[0].Message))
 
 		for _, err := range c.fieldErrors {
 			beego.BeeLogger.Debug("filedError: %v", err)
@@ -136,6 +149,22 @@ func (c *BaseController) validation(obj interface{}) {
 // generate sms auth code
 func (c *BaseController) genSmsAuthCode(tel string) (string, error) {
 	code, err := sms.GenSmsAuthCode(tel)
-	beego.BeeLogger.Debug("generate sms auth code: %v", code)
+	beego.BeeLogger.Debug("generate sms auth code: %v, err: %v", code, err)
 	return code, err
+}
+
+// varify sms auth code
+func (c *BaseController) varifySmsAuthCode(tel, code string) bool {
+	return sms.Verify(tel, code)
+}
+
+func (c *BaseController) forwardHttp(method, url string, body io.Reader) (*http.Response, error) {
+	req, _ := http.NewRequest(method, url, body)
+	return client.Do(req)
+}
+
+func (c *BaseController) getForwardHttpBody(body io.ReadCloser) []byte {
+	bodyBytes, _ := ioutil.ReadAll(body)
+
+	return bodyBytes
 }
