@@ -34,16 +34,16 @@ type ReqRegisterMemberByTel struct {
 // @router /register/tel [post]
 func (c *MemberController) RegisterByTel() {
 	reqMsg := new(ReqRegisterMemberByTel)
-	if err := json.Unmarshal(c.getHttpBody(), reqMsg); err != nil {
-		c.renderInternalError()
+	if err := json.Unmarshal(c.GetHttpBody(), reqMsg); err != nil {
+		c.RenderInternalError()
 		return
 	}
 
-	// validation
-	c.validation(reqMsg)
+	// Validation
+	c.Validation(reqMsg)
 
 	// handle error
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
@@ -51,53 +51,53 @@ func (c *MemberController) RegisterByTel() {
 	member, gErr := hm.GetMemberByTel(reqMsg.Tel, models.Reader)
 	switch gErr.GetCode() {
 	case errors.CODE_DB_ERR_GET: // 系统内部错误
-		c.renderInternalError()
+		c.RenderInternalError()
 		return
 	case errors.CODE_DB_ERR_NODATA: // 手机号尚未注册
 		if _, gE := hm.RegisterMemberByTel(reqMsg.Group, reqMsg.Tel, models.Writter); gE.IsError() { //注册失败
-			c.renderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_REG))
+			c.RenderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_REG))
 			return
 		}
 	case errors.CODE_SUCCESS: // 手机号已经存在
 		if member.Status != hm.EMemberStatus_Req { // 手机号已经被其他用户使用
-			c.renderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_TEL_ALREADY_IN))
+			c.RenderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_TEL_ALREADY_IN))
 			return
 		}
 	}
 
 	// 注册成功
-	c.renderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
+	c.RenderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
 }
 
 // @router /id/:memberId [put]
 func (c *MemberController) UpdateALL() {
 	member := new(hm.Member)
-	if err := json.Unmarshal(c.getHttpBody(), member); err != nil {
-		c.renderInternalError()
+	if err := json.Unmarshal(c.GetHttpBody(), member); err != nil {
+		c.RenderInternalError()
 		return
 	}
 
 	memberId, err := c.GetInt64(":memberId")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError(":memberId", "会员卡ID参数错误."))
+		c.AppenWrongParams(errors.NewFieldError(":memberId", "会员卡ID参数错误."))
 	}
 
 	if memberId != member.Id {
-		c.appenWrongParams(errors.NewFieldError(":memberId", "会员卡ID不匹配."))
+		c.AppenWrongParams(errors.NewFieldError(":memberId", "会员卡ID不匹配."))
 	}
 
 	// handle error
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	gErr := hm.UpdateMember(member, models.Writter)
 	switch gErr.GetCode() {
 	case errors.CODE_SUCCESS: // 更新成功
-		c.renderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
+		c.RenderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
 		return
 	default:
-		c.renderInternalError()
+		c.RenderInternalError()
 		return
 	}
 }
@@ -105,28 +105,28 @@ func (c *MemberController) UpdateALL() {
 // @router /id/:memberId [patch]
 func (c *MemberController) Update() {
 	args := make(map[string]interface {})
-	if err := json.Unmarshal(c.getHttpBody(), &args); err != nil {
-		c.renderInternalError()
+	if err := json.Unmarshal(c.GetHttpBody(), &args); err != nil {
+		c.RenderInternalError()
 		return
 	}
 
 	memberId, err := c.GetInt64(":memberId")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError(":memberId", "会员卡ID参数错误."))
+		c.AppenWrongParams(errors.NewFieldError(":memberId", "会员卡ID参数错误."))
 	}
 
 	// handle error
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	gErr := hm.UpdateMemberById(memberId, args, models.Writter)
 	switch gErr.GetCode() {
 	case errors.CODE_SUCCESS: // 更新成功
-		c.renderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
+		c.RenderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
 		return
 	default:
-		c.renderInternalError()
+		c.RenderInternalError()
 		return
 	}
 }
@@ -138,17 +138,17 @@ func (c *MemberController) GetByTel() {
 	member, gErr := hm.GetMemberByTel(tel, models.Reader)
 	switch gErr.GetCode() {
 	case errors.CODE_DB_ERR_NODATA:
-		c.renderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_USER_NAME))
+		c.RenderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_USER_NAME))
 		return
 	case errors.CODE_SUCCESS:
 		rspMsg := new(errors.ClientRsp)
 		rspMsg.Status = errors.NewStatus(errors.CODE_SUCCESS)
 		rspMsg.Body = member
 
-		c.renderJson(rspMsg)
+		c.RenderJson(rspMsg)
 		return
 	default:
-		c.renderInternalError()
+		c.RenderInternalError()
 		return
 	}
 }
@@ -157,27 +157,27 @@ func (c *MemberController) GetByTel() {
 func (c *MemberController) GetById() {
 	id, err := c.GetInt64(":id")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError(":id", "会员ID参数错误."))
+		c.AppenWrongParams(errors.NewFieldError(":id", "会员ID参数错误."))
 	}
 
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	member, gErr := hm.GetMemberById(id, models.Reader)
 	switch gErr.GetCode() {
 	case errors.CODE_DB_ERR_NODATA:
-		c.renderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_USER_ID))
+		c.RenderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_USER_ID))
 		return
 	case errors.CODE_SUCCESS:
 		rspMsg := new(errors.ClientRsp)
 		rspMsg.Status = errors.NewStatus(errors.CODE_SUCCESS)
 		rspMsg.Body = member
 
-		c.renderJson(rspMsg)
+		c.RenderJson(rspMsg)
 		return
 	default:
-		c.renderInternalError()
+		c.RenderInternalError()
 		return
 	}
 }
@@ -195,12 +195,12 @@ type ReqGenMember struct {
 func (c *MemberController) SysGenMembers() {
 
 	reqMsg := new(ReqGenMember)
-	if err := json.Unmarshal(c.getHttpBody(), reqMsg); err != nil {
-		c.renderInternalError()
+	if err := json.Unmarshal(c.GetHttpBody(), reqMsg); err != nil {
+		c.RenderInternalError()
 		return
 	}
 
 	hm.GenMembers(reqMsg.MinNo, reqMsg.MaxNo, reqMsg.Count, reqMsg.Group, models.Writter)
 
-	c.renderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
+	c.RenderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
 }

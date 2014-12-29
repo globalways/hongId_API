@@ -21,40 +21,40 @@ type MemberCardController struct {
 func (c *MemberCardController) Post() {
 	cardCnt, err1 := c.GetInt64("cnt")
 	if err1 != nil {
-		c.appenWrongParams(errors.NewFieldError("card cnt", err1.Error()))
+		c.AppenWrongParams(errors.NewFieldError("card cnt", err1.Error()))
 	}
 
 	merchant, err2 := c.GetInt64("merchant")
 	if err2 != nil {
-		c.appenWrongParams(errors.NewFieldError("card cnt", err2.Error()))
+		c.AppenWrongParams(errors.NewFieldError("card cnt", err2.Error()))
 	}
 
 	card := new(hm.ReqCard)
-	if err := json.Unmarshal(c.getHttpBody(), card); err != nil {
-		c.appenWrongParams(errors.NewFieldError("memberCard json", err.Error()))
+	if err := json.Unmarshal(c.GetHttpBody(), card); err != nil {
+		c.AppenWrongParams(errors.NewFieldError("memberCard json", err.Error()))
 	}
 
 	// handle http request param
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	cards, gErr := hm.GenMemberCards(card, merchant, cardCnt, models.Writter)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_DATA_EXIST {
-			c.setHttpStatus(http.StatusOK)
+			c.SetHttpStatus(http.StatusOK)
 		} else if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
-			c.setHttpStatus(http.StatusNotFound)
+			c.SetHttpStatus(http.StatusNotFound)
 		} else {
-			c.setHttpStatus(http.StatusInternalServerError)
+			c.SetHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(errors.NewCommonOutRsp(gErr))
+		c.RenderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
-	c.setHttpStatus(http.StatusCreated)
-	c.renderJson(cards)
+	c.SetHttpStatus(http.StatusCreated)
+	c.RenderJson(cards)
 }
 
 // @router / [get]
@@ -62,18 +62,18 @@ func (c *MemberCardController) GetAll() {
 
 	var pageNum, pageSize int64
 	if page, err := c.GetInt64("page"); err != nil {
-		c.appenWrongParams(errors.NewFieldError("page", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError("page", err.Error()))
 	} else {
 		pageNum = page
 	}
 	if size, err := c.GetInt64("size"); err != nil {
-		c.appenWrongParams(errors.NewFieldError("size", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError("size", err.Error()))
 	} else {
 		pageSize = size
 	}
 
 	// handle http request param
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
@@ -82,70 +82,70 @@ func (c *MemberCardController) GetAll() {
 	cards, gErr := hm.FindMemberCard(pager, models.Reader)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
-			c.setHttpStatus(http.StatusNotFound)
+			c.SetHttpStatus(http.StatusNotFound)
 		} else {
-			c.setHttpStatus(http.StatusInternalServerError)
+			c.SetHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(errors.NewCommonOutRsp(gErr))
+		c.RenderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
-	c.renderJson(cards)
+	c.RenderJson(cards)
 }
 
 // @router /id/:id [get]
 func (c *MemberCardController) Get() {
 	cardId, err := c.GetInt64(":id")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError("memberCardId", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError("memberCardId", err.Error()))
 	}
 
 	// handle http request param
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	card, gErr := hm.GetMemberCardById(cardId, models.Reader)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
-			c.setHttpStatus(http.StatusNotFound)
+			c.SetHttpStatus(http.StatusNotFound)
 		} else {
-			c.setHttpStatus(http.StatusInternalServerError)
+			c.SetHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(errors.NewCommonOutRsp(gErr))
+		c.RenderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
-	c.renderJson(card)
+	c.RenderJson(card)
 }
 
-// @router /id/:id/qrcode [get]
+// @router /id/:id/qr [get]
 func (c *MemberCardController) GetQrCode() {
 	cardId, err := c.GetInt64(":id")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError("memberCardId", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError("memberCardId", "会员ID参数错误."))
 	}
 
 	// handle http request param
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	card, gErr := hm.GetMemberCardById(cardId, models.Reader)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
-			c.setHttpStatus(http.StatusNotFound)
+			c.SetHttpStatus(http.StatusNotFound)
 		} else {
-			c.setHttpStatus(http.StatusInternalServerError)
+			c.SetHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(errors.NewCommonOutRsp(gErr))
+		c.RenderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
-	c.renderPng(card.GenQrStream())
+	c.RenderPng(card.GenQrStream())
 }
 
 // @router /card/:card/bind/:owner [post]
@@ -153,17 +153,21 @@ func (c *MemberCardController) BindCard() {
 	cardStr := c.GetString(":card")
 	ownerId, err := c.GetInt64(":owner")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError(":owner", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError(":owner", "会员ID参数错误."))
 	}
 
 	// handle http request param
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	gErr := hm.BindMemberCardOwner(cardStr, ownerId, models.Writter)
-
-	c.renderJson(errors.NewCommonOutRsp(gErr))
+	switch gErr.GetCode() {
+	case errors.CODE_BISS_ERR_HAS_OWNER, errors.CODE_BISS_ERR_VARIFY_CARD, errors.CODE_SUCCESS:
+		c.RenderJson(errors.NewClientRsp(gErr.GetCode()))
+	default:
+		c.RenderInternalError()
+	}
 }
 
 // @router /card/:card/unbind [post]
@@ -171,6 +175,10 @@ func (c *MemberCardController) UnBindCard() {
 	cardStr := c.GetString(":card")
 
 	gErr := hm.UnBindMemberCardOwner(cardStr, models.Writter)
-
-	c.renderJson(errors.NewCommonOutRsp(gErr))
+	switch gErr.GetCode() {
+	case errors.CODE_BISS_ERR_VARIFY_CARD, errors.CODE_SUCCESS:
+		c.RenderJson(errors.NewClientRsp(gErr.GetCode()))
+	default:
+		c.RenderInternalError()
+	}
 }

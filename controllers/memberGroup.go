@@ -23,33 +23,33 @@ type MemberGroupController struct {
 // @router / [post]
 func (c *MemberGroupController) NewGroup() {
 	group := new(hm.MemberGroup)
-	err := json.Unmarshal(c.getHttpBody(), group)
+	err := json.Unmarshal(c.GetHttpBody(), group)
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError("MemberGroup json", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError("MemberGroup json", err.Error()))
 	}
 
 	// handle http request param
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	id, gErr := hm.NewMemberGroup(group, models.Writter)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_DATA_EXIST {
-			c.setHttpStatus(http.StatusOK)
+			c.SetHttpStatus(http.StatusOK)
 		} else {
-			c.setHttpStatus(http.StatusInternalServerError)
+			c.SetHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(errors.NewCommonOutRsp(gErr))
+		c.RenderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
 	group.Id = id
 
-	c.setHttpHeader("Location", c.combineUrl(beego.UrlFor("MemberGroupController.GetGroup", ":groupId", convert.Int642str(id))))
-	c.setHttpStatus(http.StatusCreated)
-	c.renderJson(group)
+	c.SetHttpHeader("Location", c.CombineUrl(beego.UrlFor("MemberGroupController.GetGroup", ":groupId", convert.Int642str(id))))
+	c.SetHttpStatus(http.StatusCreated)
+	c.RenderJson(group)
 }
 
 // @router / [get]
@@ -57,79 +57,79 @@ func (c *MemberGroupController) GetGroupALL() {
 	groups, gErr := hm.FindMemberGroup(models.Reader)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
-			c.setHttpStatus(http.StatusNotFound)
+			c.SetHttpStatus(http.StatusNotFound)
 		} else {
-			c.setHttpStatus(http.StatusInternalServerError)
+			c.SetHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(errors.NewCommonOutRsp(gErr))
+		c.RenderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
-	c.renderJson(groups)
+	c.RenderJson(groups)
 }
 
 // @router /:groupId [get]
 func (c *MemberGroupController) GetGroup() {
 	groupId, err := c.GetInt64(":groupId")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError(":groupId", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError(":groupId", err.Error()))
 	}
 
 	// handle http request param
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	group, gErr := hm.GetGroupInfo(groupId, models.Reader)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
-			c.setHttpStatus(http.StatusNotFound)
+			c.SetHttpStatus(http.StatusNotFound)
 		} else {
-			c.setHttpStatus(http.StatusInternalServerError)
+			c.SetHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(errors.NewCommonOutRsp(gErr))
+		c.RenderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
-	c.renderJson(group)
+	c.RenderJson(group)
 }
 
 // @router /:groupId [put]
 func (c *MemberGroupController) UpdateALL() {
 	groupId, err := c.GetInt64(":groupId")
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError("groupId", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError("groupId", err.Error()))
 	}
 
 	group := new(hm.MemberGroup)
-	err = json.Unmarshal(c.getHttpBody(), group)
+	err = json.Unmarshal(c.GetHttpBody(), group)
 	if err != nil {
-		c.appenWrongParams(errors.NewFieldError("group Json", err.Error()))
+		c.AppenWrongParams(errors.NewFieldError("group Json", err.Error()))
 	}
 
 	if group.Id != groupId {
-		c.appenWrongParams(errors.NewFieldError("groupId", "path groupId & json groupId didn't match."))
+		c.AppenWrongParams(errors.NewFieldError("groupId", "path groupId & json groupId didn't match."))
 	}
 
 	// handle http request param
-	if c.handleParamError() {
+	if c.HandleParamError() {
 		return
 	}
 
 	_, gErr := hm.UpdateGroupInfo(group, models.Writter)
 	if gErr.IsError() {
 		if gErr.GetCode() == errors.CODE_DB_ERR_NODATA {
-			c.setHttpStatus(http.StatusNotFound)
+			c.SetHttpStatus(http.StatusNotFound)
 		} else {
-			c.setHttpStatus(http.StatusInternalServerError)
+			c.SetHttpStatus(http.StatusInternalServerError)
 		}
 
-		c.renderJson(errors.NewCommonOutRsp(gErr))
+		c.RenderJson(errors.NewCommonOutRsp(gErr))
 		return
 	}
 
-	c.renderJson(group)
+	c.RenderJson(group)
 }
 

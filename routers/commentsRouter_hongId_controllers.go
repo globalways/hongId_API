@@ -72,7 +72,7 @@ func init() {
 	beego.GlobalControllerRouter["hongId/controllers:MemberCardController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberCardController"],
 		beego.ControllerComments{
 			"GetQrCode",
-			`/id/:id/qrcode`,
+			`/id/:id/qr`,
 			[]string{"get"},
 			nil})
 
