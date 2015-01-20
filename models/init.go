@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/orm"
-	. "github.com/globalways/hongId_models/models"
+	sm "github.com/globalways/chain_store_models/models"
+	hm "github.com/globalways/hongId_models/models"
+	pm "github.com/globalways/points_models/models"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
 )
@@ -26,26 +28,34 @@ var (
 	dbHost   = beego.AppConfig.DefaultString(beego.RunMode+"::dbhost", "127.0.0.1:3306")
 	dbName   = beego.AppConfig.DefaultString(beego.RunMode+"::dbname", "gws_hongid")
 	dbEncode = beego.AppConfig.DefaultString(beego.RunMode+"::dbencode", "utf8")
-
-//	dbDriver = "mysql"
-//	userName = "root"
-//	userPass = "bigbang990"
-//	dbHost   = "127.0.0.1:3306"
-//	dbName   = "gws_hongid"
-//	dbEncode = "utf8"
 )
 
 func init() {
 
 	// 注册模型
 	orm.RegisterModelWithPrefix(
-		"",
-		new(MemberProfile),
-		new(MemberCard),
-		new(Member),
-		new(MemberGroup),
-		new(MemberGrowth),
-		new(MemberScore),
+		"t_",
+		new(hm.MemberProfile),
+		new(hm.MemberCard),
+		new(hm.Member),
+		new(hm.MemberGroup),
+		new(hm.MemberGrowth),
+		new(pm.MemberPoints),
+		new(pm.MemberPointsDetail),
+		new(sm.Order),
+		new(sm.OrderDetail),
+		new(sm.OrderProcess),
+		new(sm.OrderAddress),
+		new(sm.PurchaseChannel),
+		new(sm.PurchaseMaterial),
+		new(sm.PurchaseProduct),
+		new(sm.Product),
+		new(sm.ProductTag),
+		new(sm.Store),
+		new(sm.StoreMaterial),
+		new(sm.StoreProduct),
+		new(sm.StoreAdmin),
+		new(sm.StoreIndustry),
 	)
 
 	// 设置为 UTC 时间
@@ -70,7 +80,7 @@ func init() {
 }
 
 func SyncData() {
-	if !IsGroupExist("环途会员", Reader) && !IsGroupExist("个人会员", Reader) && !IsGroupExist("机构会员", Reader) {
+	if !hm.IsGroupExist("环途会员组", Reader) && !hm.IsGroupExist("个人会员组", Reader) && !hm.IsGroupExist("机构会员组", Reader) {
 		orm.RunSyncdb("default", true, false)
 		go initData()
 	}
@@ -79,43 +89,22 @@ func SyncData() {
 // 初始化系统数据
 func initData() {
 	// 分组：环途会员, 个人用户，机构用户
-	gwsGroup := &MemberGroup{
-		GroupName:    "环途会员",
-		GroupDesc:    "环途会员分组",
-		Contribution: 0,
-		Status:       EMemberGroupStatus_Enable,
-	}
-	gwsId, _ := NewMemberGroup(gwsGroup, Writter)
-
-	userGroup := &MemberGroup{
-		GroupName:    "个人会员",
-		GroupDesc:    "个人会员分组",
-		Contribution: 0,
-		Status:       EMemberGroupStatus_Enable,
-	}
-	userId, _ := NewMemberGroup(userGroup, Writter)
-
-	agencyGroup := &MemberGroup{
-		GroupName:    "机构会员",
-		GroupDesc:    "机构会员分组",
-		Contribution: 100,
-		Status:       EMemberGroupStatus_Enable,
-	}
-	agencyId, _ := NewMemberGroup(agencyGroup, Writter)
+	gws := hm.NewMemberGroup("环途会员组", "环途会员分组,只用于系统内部或者内部员工", 0, hm.EMemberGroupStatus_Enable, Writter)
+	user := hm.NewMemberGroup("个人会员组", "个人会员分组,用户个人用户注册使用", 0, hm.EMemberGroupStatus_Enable, Writter)
+	agency := hm.NewMemberGroup("机构会员组", "机构会员分组,用户企业用户注册使用", 0, hm.EMemberGroupStatus_Enable, Writter)
 
 	// 各自生成1000个会员
-	GenMembers(1, 9999, 1000, gwsId, Writter)
-	GenMembers(10000000, 99999999, 1000, userId, Writter)
-	GenMembers(100000, 999999, 1000, agencyId, Writter)
+	hm.GenMembers(1, 2, 1, gws.Id, Writter)
+	hm.GenMembers(10000000, 99999999, 1000, user.Id, Writter)
+	hm.GenMembers(100000, 999999, 1000, agency.Id, Writter)
 
-	// 生成环途会员卡发布会员
-	gwsUser, _ := RegisterMemberByTel(1, "4000285843",Writter)
+	// 发卡会员，主要使用hongid
+	cardAuth := hm.GetUnUsedMember(gws.Id, Reader)
+	args := map[string]interface{}{
+		"status": hm.EMemberStatus_Sys,
+	}
+	hm.UpdateMemberById(cardAuth.Id, args, Writter)
 
 	// 环途自营会员卡10000张
-	card := &ReqCard{
-		MII: 6,
-		CPI: 32,
-		CDI: 86,
-	}
-	GenMemberCards(card, gwsUser.Id, 10000, Writter)
+	hm.GenMemberCards(6, 32, 86, cardAuth.HongId, 10000, Writter)
 }

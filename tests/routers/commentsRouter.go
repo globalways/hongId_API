@@ -5,7 +5,7 @@ import (
 )
 
 func init() {
-	
+
 	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
 		beego.ControllerComments{
 			"TelAuthCode",

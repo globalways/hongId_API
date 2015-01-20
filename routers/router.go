@@ -8,9 +8,8 @@
 package routers
 
 import (
-	"hongId/controllers"
-
 	"github.com/astaxie/beego"
+	"hongId/controllers"
 )
 
 func init() {
@@ -28,6 +27,17 @@ func init() {
 		beego.NSNamespace("/memberGroups",
 			beego.NSInclude(
 				&controllers.MemberGroupController{},
+			),
+		),
+		beego.NSNamespace("/orders",
+			beego.NSInclude(
+				&controllers.OrderController{},
+				&controllers.OrderAddressController{},
+			),
+		),
+		beego.NSNamespace("/stores",
+			beego.NSInclude(
+				&controllers.StoreAdminController{},
 			),
 		),
 	)

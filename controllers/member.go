@@ -15,9 +15,19 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/astaxie/beego"
+	hm "github.com/globalways/hongId_models/models"
+	"github.com/globalways/utils_go/controller"
+	"github.com/globalways/utils_go/convert"
 	"github.com/globalways/utils_go/errors"
 	"hongId/models"
-	hm "github.com/globalways/hongId_models/models"
+	"strings"
+)
+
+var (
+	_ controller.BasicController
+	_ beego.Controller
 )
 
 // 会员 API
@@ -25,94 +35,29 @@ type MemberController struct {
 	BaseController
 }
 
-// app 手机注册
-type ReqRegisterMemberByTel struct {
-	Tel string `json:"tel"`
-	Group int64 `json:"group"`
-}
-
-// @router /register/tel [post]
-func (c *MemberController) RegisterByTel() {
-	reqMsg := new(ReqRegisterMemberByTel)
-	if err := json.Unmarshal(c.GetHttpBody(), reqMsg); err != nil {
-		c.RenderInternalError()
-		return
-	}
-
-	// Validation
-	c.Validation(reqMsg)
-
-	// handle error
-	if c.HandleParamError() {
-		return
-	}
-
-	// 根据手机号查找会员信息
-	member, gErr := hm.GetMemberByTel(reqMsg.Tel, models.Reader)
-	switch gErr.GetCode() {
-	case errors.CODE_DB_ERR_GET: // 系统内部错误
-		c.RenderInternalError()
-		return
-	case errors.CODE_DB_ERR_NODATA: // 手机号尚未注册
-		if _, gE := hm.RegisterMemberByTel(reqMsg.Group, reqMsg.Tel, models.Writter); gE.IsError() { //注册失败
-			c.RenderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_REG))
-			return
-		}
-	case errors.CODE_SUCCESS: // 手机号已经存在
-		if member.Status != hm.EMemberStatus_Req { // 手机号已经被其他用户使用
-			c.RenderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_TEL_ALREADY_IN))
-			return
-		}
-	}
-
-	// 注册成功
-	c.RenderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
-}
-
-// @router /id/:memberId [put]
-func (c *MemberController) UpdateALL() {
-	member := new(hm.Member)
-	if err := json.Unmarshal(c.GetHttpBody(), member); err != nil {
-		c.RenderInternalError()
-		return
-	}
-
-	memberId, err := c.GetInt64(":memberId")
-	if err != nil {
-		c.AppenWrongParams(errors.NewFieldError(":memberId", "会员卡ID参数错误."))
-	}
-
-	if memberId != member.Id {
-		c.AppenWrongParams(errors.NewFieldError(":memberId", "会员卡ID不匹配."))
-	}
-
-	// handle error
-	if c.HandleParamError() {
-		return
-	}
-
-	gErr := hm.UpdateMember(member, models.Writter)
-	switch gErr.GetCode() {
-	case errors.CODE_SUCCESS: // 更新成功
-		c.RenderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
-		return
-	default:
-		c.RenderInternalError()
-		return
-	}
-}
-
-// @router /id/:memberId [patch]
+// /v1/members/s?identify=tel&value=18610889275&fields=nickname,password&groupid=2
+// @router /s [put]
 func (c *MemberController) Update() {
-	args := make(map[string]interface {})
-	if err := json.Unmarshal(c.GetHttpBody(), &args); err != nil {
+	argsOriginal := make(map[string]interface{})
+	args := make(map[string]interface{})
+	if err := json.Unmarshal(c.GetHttpBody(), &argsOriginal); err != nil {
 		c.RenderInternalError()
 		return
 	}
 
-	memberId, err := c.GetInt64(":memberId")
-	if err != nil {
-		c.AppenWrongParams(errors.NewFieldError(":memberId", "会员卡ID参数错误."))
+	// 拆分fields
+	fields := strings.Split(c.GetString("fields"), ",")
+	c.Debug("fields: %+v, len: %v", fields, len(fields))
+	if len(fields) != 0 {
+		for _, field := range fields {
+			if val, ok := argsOriginal[field]; !ok {
+				c.AppenWrongParams(errors.NewFieldError(field, fmt.Sprintf("更新参数值%v未传递.", field)))
+			} else {
+				args[field] = val
+			}
+		}
+	} else {
+		args = argsOriginal
 	}
 
 	// handle error
@@ -120,73 +65,127 @@ func (c *MemberController) Update() {
 		return
 	}
 
-	gErr := hm.UpdateMemberById(memberId, args, models.Writter)
-	switch gErr.GetCode() {
-	case errors.CODE_SUCCESS: // 更新成功
-		c.RenderJson(errors.NewGlobalwaysErrorRsp(errors.ErrorOK()))
-		return
+	identifyFlag := c.GetString("identify")
+	identifyVal := c.GetString("value")
+	groupId, _ := c.GetInt64("groupid")
+	updateFlag := false
+	switch identifyFlag {
+	case "id":
+		updateFlag = hm.UpdateMemberById(convert.Str2Int64(identifyVal), args, models.Writter)
+	case "hongid":
+		updateFlag = hm.UpdateMemberByHongId(convert.Str2Int64(identifyVal), args, models.Writter)
+	case "tel":
+		updateFlag = hm.UpdateMemberByTel(identifyVal, groupId, args, models.Writter)
 	default:
-		c.RenderInternalError()
+		c.RenderUnSupportedIdentifyError()
 		return
 	}
-}
 
-// @router /tel/:tel [get]
-func (c *MemberController) GetByTel() {
-	tel := c.GetString(":tel")
-
-	member, gErr := hm.GetMemberByTel(tel, models.Reader)
-	switch gErr.GetCode() {
-	case errors.CODE_DB_ERR_NODATA:
-		c.RenderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_USER_NAME))
-		return
-	case errors.CODE_SUCCESS:
-		rspMsg := new(errors.ClientRsp)
-		rspMsg.Status = errors.NewStatus(errors.CODE_SUCCESS)
-		rspMsg.Body = member
-
-		c.RenderJson(rspMsg)
-		return
-	default:
-		c.RenderInternalError()
-		return
+	clientRsp := new(errors.ClientRsp)
+	clientRsp.Status = errors.NewStatusOK()
+	if !updateFlag {
+		clientRsp.Status = errors.NewStatusInternalError()
 	}
+
+	c.RenderJson(clientRsp)
 }
 
-// @router /id/:id [get]
-func (c *MemberController) GetById() {
-	id, err := c.GetInt64(":id")
+// /v1/members/u?groupid=2&fields=id
+// @router /u [get]
+func (c *MemberController) GetUnUsed() {
+	groupid, err := c.GetInt64("groupid")
 	if err != nil {
-		c.AppenWrongParams(errors.NewFieldError(":id", "会员ID参数错误."))
+		c.AppenWrongParams(errors.NewFieldError("groupid", "会员组ID参数值错误."))
 	}
 
 	if c.HandleParamError() {
 		return
 	}
 
-	member, gErr := hm.GetMemberById(id, models.Reader)
-	switch gErr.GetCode() {
-	case errors.CODE_DB_ERR_NODATA:
-		c.RenderJson(errors.NewClientRsp(errors.CODE_BISS_ERR_USER_ID))
-		return
-	case errors.CODE_SUCCESS:
-		rspMsg := new(errors.ClientRsp)
-		rspMsg.Status = errors.NewStatus(errors.CODE_SUCCESS)
-		rspMsg.Body = member
+	clientRsp := new(errors.ClientRsp)
+	clientRsp.Status = errors.NewStatusOK()
+	member := hm.GetUnUsedMember(groupid, models.Reader)
+	if member == nil {
+		clientRsp.Status = errors.NewStatus(errors.CODE_BISS_ERR_NO_MEMBER)
+	}
 
-		c.RenderJson(rspMsg)
-		return
+	// parse member to map[string]interface{}
+	memberParse, e := convert.ParseStruct(member, "orm", "column")
+	if e != nil {
+		c.Debug("parse struct error: %v", e)
+		clientRsp.Status = errors.NewStatusInternalError()
+	}
+
+	fields := strings.Split(c.GetString("fields"), ",")
+	if len(fields) != 0 {
+		body := make(map[string]interface{})
+		for _, field := range fields {
+			if v, ok := memberParse[field]; ok {
+				body[field] = v
+			}
+		}
+		clientRsp.Body = body
+	} else {
+		clientRsp.Body = memberParse
+	}
+
+	c.RenderJson(clientRsp)
+}
+
+// /v1/members?identify=tel&value=18610889275&fields=id,hongid,tel,email&groupid=2
+// @router /s [get]
+func (c *MemberController) Get() {
+
+	identifyFlag := c.GetString("identify")
+	identifyVal := c.GetString("value")
+	groupId, _ := c.GetInt64("groupid")
+
+	clientRsp := new(errors.ClientRsp)
+	clientRsp.Status = errors.NewStatusOK()
+	member := new(hm.Member)
+	switch identifyFlag {
+	case "id":
+		member = hm.GetMemberById(convert.Str2Int64(identifyVal), models.Reader)
+	case "hongid":
+		member = hm.GetMemberByHongId(convert.Str2Int64(identifyVal), models.Reader)
+	case "tel":
+		member = hm.GetMemberByTel(identifyVal, groupId, models.Reader)
 	default:
-		c.RenderInternalError()
+		c.RenderUnSupportedIdentifyError()
 		return
 	}
+	if member == nil {
+		clientRsp.Status = errors.NewStatus(errors.CODE_BISS_ERR_NO_MEMBER)
+	}
+
+	// parse member to map[string]interface{}
+	memberParse, e := convert.ParseStruct(member, "orm", "column")
+	if e != nil {
+		c.Debug("parse struct error: %v", e)
+		clientRsp.Status = errors.NewStatusInternalError()
+	}
+
+	fields := strings.Split(c.GetString("fields"), ",")
+	if len(fields) != 0 {
+		body := make(map[string]interface{})
+		for _, field := range fields {
+			if v, ok := memberParse[field]; ok {
+				body[field] = v
+			}
+		}
+		clientRsp.Body = body
+	} else {
+		clientRsp.Body = memberParse
+	}
+
+	c.RenderJson(clientRsp)
 }
 
 type ReqGenMember struct {
-	MinNo  int64 `json:"min"`
-	MaxNo  int64 `json:"max"`
-	Count  int64 `json:"count"`
-	Group  int64 `json:"group"`
+	MinNo int64 `json:"min"`
+	MaxNo int64 `json:"max"`
+	Count int64 `json:"count"`
+	Group int64 `json:"group"`
 }
 
 // curl -i -H "Content-Type: application/json" -d '{"min":10000,"max":99999,"count":1000,"group":1}' 127.0.0.1:8081/v1/members

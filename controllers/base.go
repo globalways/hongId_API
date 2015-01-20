@@ -10,11 +10,10 @@ import (
 )
 
 var (
-	_         context.Context
-	_         logs.BeeLogger
+	_ context.Context
+	_ logs.BeeLogger
 )
 
 type BaseController struct {
-	*controller.BasicController
+	controller.BasicController
 }
-

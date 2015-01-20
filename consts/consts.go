@@ -4,5 +4,4 @@
 package consts
 
 // param error code
-const (
-)
+const ()

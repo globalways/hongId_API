@@ -5,8 +5,8 @@ import (
 	_ "hongId/routers"
 
 	"github.com/astaxie/beego"
-	"os"
 	"github.com/astaxie/beego/context"
+	"os"
 )
 
 func main() {
@@ -17,7 +17,7 @@ func init() {
 
 	// log
 	beego.BeeLogger.EnableFuncCallDepth(true)
-	beego.BeeLogger.SetLogFuncCallDepth(4)
+	beego.BeeLogger.SetLogFuncCallDepth(3)
 
 	switch beego.RunMode {
 	case "dev":
