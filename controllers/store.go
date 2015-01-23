@@ -206,14 +206,19 @@ func (c *StoreController) GetStores() {
 			continue
 		}
 
-		body := make(map[string]interface{})
-		for _, field := range fields {
-			if v, ok := storeParse[field]; ok {
-				body[field] = v
+		if len(fields) != 0 {
+			body := make(map[string]interface{})
+			for _, field := range fields {
+				if v, ok := storeParse[field]; ok {
+					body[field] = v
+				}
 			}
+
+			storesParse = append(storesParse, body)
+		} else {
+			storesParse = append(storesParse, storeParse)
 		}
 
-		storesParse = append(storesParse, body)
 	}
 	clientRsp.Body = storesParse
 
