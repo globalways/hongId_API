@@ -107,4 +107,8 @@ func initData() {
 
 	// 环途自营会员卡10000张
 	hm.GenMemberCards(6, 32, 86, cardAuth.HongId, 10000, Writter)
+
+	//商铺行业分类添加
+	sm.NewStoreIndustry("餐饮", Writter)
+	sm.NewStoreIndustry("零售", Writter)
 }
