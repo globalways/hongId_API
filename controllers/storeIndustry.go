@@ -45,10 +45,17 @@ func (c *StoreIndustryController) NewIndustry() {
 	}
 
 	var industryName string
+	var industryIcon string
 	if v, ok := args["industryname"]; !ok {
 		c.AppenWrongParams(errors.NewFieldError("industryName", "参数传递错误."))
 	} else {
 		industryName = v.(string)
+	}
+
+	if v, ok := args["industryicon"]; !ok {
+		c.AppenWrongParams(errors.NewFieldError("industryIcon", "参数传递错误."))
+	} else {
+		industryIcon = v.(string)
 	}
 
 	if c.HandleParamError() {
@@ -56,7 +63,7 @@ func (c *StoreIndustryController) NewIndustry() {
 	}
 
 	clientRsp := errors.NewClientRspOK()
-	industry := sm.NewStoreIndustry(industryName, models.Writter)
+	industry := sm.NewStoreIndustry(industryName, industryIcon, models.Writter)
 	if industry == nil {
 		clientRsp.Status = errors.NewStatusInternalError()
 	}

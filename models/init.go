@@ -62,7 +62,7 @@ func init() {
 	orm.DefaultTimeLoc = time.UTC
 	// 注册数据库
 	orm.RegisterDataBase("default", dbDriver,
-		fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s", userName, userPass, dbHost, dbName, dbEncode), 30, 30)
+		fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=%s", userName, userPass, dbHost, dbName, dbEncode), 100, 100)
 
 	if beego.RunMode == "dev" {
 		orm.Debug = true
@@ -109,6 +109,15 @@ func initData() {
 	hm.GenMemberCards(6, 32, 86, cardAuth.HongId, 10000, Writter)
 
 	//商铺行业分类添加
-	sm.NewStoreIndustry("餐饮", Writter)
-	sm.NewStoreIndustry("零售", Writter)
+	sm.NewStoreIndustry("餐饮", "", Writter)
+	sm.NewStoreIndustry("零售", "", Writter)
+
+	//商品tag添加
+	sm.NewProductTag("中餐", "", Writter)
+	sm.NewProductTag("西餐", "", Writter)
+	sm.NewProductTag("小吃", "", Writter)
+	sm.NewProductTag("副食", "", Writter)
+	sm.NewProductTag("熟食", "", Writter)
+	sm.NewProductTag("香烟", "", Writter)
+	sm.NewProductTag("洋酒", "", Writter)
 }

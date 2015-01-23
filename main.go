@@ -7,9 +7,12 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
 	"os"
+	"runtime"
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	beego.Run()
 }
 

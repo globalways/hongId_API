@@ -40,6 +40,7 @@ func init() {
 				&controllers.StoreAdminController{},
 				&controllers.StoreController{},
 				&controllers.StoreIndustryController{},
+				&controllers.ProductTagController{},
 			),
 		),
 	)

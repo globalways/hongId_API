@@ -50,6 +50,26 @@ func (c *StoreController) NewStore() {
 		clientRsp.Status = errors.NewStatusInternalError()
 	}
 
+	storeParse, err := convert.ParseStruct(store, "orm", "column")
+	if err != nil {
+		c.RenderInternalError();return
+	}
+
+	fields := strings.Split(c.GetString("fields"), ",")
+	if len(fields) != 0 {
+		body := make(map[string]interface {})
+		for _, field := range fields {
+			if v, ok := storeParse[field]; !ok {
+				continue
+			} else {
+				body[field] = v
+			}
+		}
+		clientRsp.Body = body
+	} else {
+		clientRsp.Body = storeParse
+	}
+
 	c.RenderJson(clientRsp)
 }
 
@@ -77,16 +97,16 @@ func (c *StoreController) DeleteStore() {
 // /v1/stores/123483?fields=xx,xx,xx
 // @router /:storeid [put]
 func (c *StoreController) UpdateStore() {
-	storeid, err := c.GetInt64(":storeid")
-	if err != nil {
-		c.AppenWrongParams(errors.NewFieldError(":storeid", "商铺Id参数值错误."))
-	}
-
 	argsOriginal := make(map[string]interface{})
 	args := make(map[string]interface{})
 	if err := json.Unmarshal(c.GetHttpBody(), &argsOriginal); err != nil {
 		c.RenderInternalError()
 		return
+	}
+
+	storeid, err := c.GetInt64(":storeid")
+	if err != nil {
+		c.AppenWrongParams(errors.NewFieldError(":storeid", "商铺Id参数值错误."))
 	}
 
 	// 拆分fields
