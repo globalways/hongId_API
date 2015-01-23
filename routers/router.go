@@ -38,6 +38,8 @@ func init() {
 		beego.NSNamespace("/stores",
 			beego.NSInclude(
 				&controllers.StoreAdminController{},
+				&controllers.StoreController{},
+				&controllers.StoreIndustryController{},
 			),
 		),
 	)
