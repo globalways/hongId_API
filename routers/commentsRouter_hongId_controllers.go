@@ -6,32 +6,60 @@ import (
 
 func init() {
 	
-	beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"],
+	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
 		beego.ControllerComments{
-			"GetGroupALL",
-			`/`,
+			"Update",
+			`/s`,
+			[]string{"put"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
+		beego.ControllerComments{
+			"GetUnUsed",
+			`/u`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"],
+	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
 		beego.ControllerComments{
-			"NewGroup",
+			"Get",
+			`/s`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
+		beego.ControllerComments{
+			"SysGenMembers",
 			`/`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"],
+	beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"],
 		beego.ControllerComments{
-			"GetGroup",
-			`/id/:groupId`,
-			[]string{"get"},
+			"NewAddress",
+			`/addresses`,
+			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"],
+	beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"],
 		beego.ControllerComments{
-			"UpdateALL",
-			`/id/:groupId`,
+			"DelAddress",
+			`/addresses`,
+			[]string{"delete"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"],
+		beego.ControllerComments{
+			"UpdateAddress",
+			`/addresses`,
 			[]string{"put"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"],
+		beego.ControllerComments{
+			"ListAddress",
+			`/addresses`,
+			[]string{"get"},
 			nil})
 
 	beego.GlobalControllerRouter["hongId/controllers:StoreController"] = append(beego.GlobalControllerRouter["hongId/controllers:StoreController"],
@@ -64,23 +92,44 @@ func init() {
 
 	beego.GlobalControllerRouter["hongId/controllers:StoreController"] = append(beego.GlobalControllerRouter["hongId/controllers:StoreController"],
 		beego.ControllerComments{
+			"GetStoresByAdmin",
+			`/a/:adminid`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:StoreController"] = append(beego.GlobalControllerRouter["hongId/controllers:StoreController"],
+		beego.ControllerComments{
 			"GetStores",
 			`/`,
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["hongId/controllers:MemberCardController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberCardController"],
+	beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"],
 		beego.ControllerComments{
-			"GenCard",
+			"GetGroupALL",
+			`/`,
+			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"],
+		beego.ControllerComments{
+			"NewGroup",
 			`/`,
 			[]string{"post"},
 			nil})
 
-	beego.GlobalControllerRouter["hongId/controllers:MemberCardController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberCardController"],
+	beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"],
 		beego.ControllerComments{
-			"GetAll",
-			`/`,
+			"GetGroup",
+			`/id/:groupId`,
 			[]string{"get"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberGroupController"],
+		beego.ControllerComments{
+			"UpdateALL",
+			`/id/:groupId`,
+			[]string{"put"},
 			nil})
 
 	beego.GlobalControllerRouter["hongId/controllers:OrderController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderController"],
@@ -122,34 +171,6 @@ func init() {
 		beego.ControllerComments{
 			"OrderProcesses",
 			`/:orderid/processes`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"],
-		beego.ControllerComments{
-			"NewAddress",
-			`/addresses`,
-			[]string{"post"},
-			nil})
-
-	beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"],
-		beego.ControllerComments{
-			"DelAddress",
-			`/addresses`,
-			[]string{"delete"},
-			nil})
-
-	beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"],
-		beego.ControllerComments{
-			"UpdateAddress",
-			`/addresses`,
-			[]string{"put"},
-			nil})
-
-	beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"] = append(beego.GlobalControllerRouter["hongId/controllers:OrderAddressController"],
-		beego.ControllerComments{
-			"ListAddress",
-			`/addresses`,
 			[]string{"get"},
 			nil})
 
@@ -209,32 +230,18 @@ func init() {
 			[]string{"get"},
 			nil})
 
-	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
+	beego.GlobalControllerRouter["hongId/controllers:MemberCardController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberCardController"],
 		beego.ControllerComments{
-			"Update",
-			`/s`,
-			[]string{"put"},
-			nil})
-
-	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
-		beego.ControllerComments{
-			"GetUnUsed",
-			`/u`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
-		beego.ControllerComments{
-			"Get",
-			`/s`,
-			[]string{"get"},
-			nil})
-
-	beego.GlobalControllerRouter["hongId/controllers:MemberController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberController"],
-		beego.ControllerComments{
-			"SysGenMembers",
+			"GenCard",
 			`/`,
 			[]string{"post"},
+			nil})
+
+	beego.GlobalControllerRouter["hongId/controllers:MemberCardController"] = append(beego.GlobalControllerRouter["hongId/controllers:MemberCardController"],
+		beego.ControllerComments{
+			"GetAll",
+			`/`,
+			[]string{"get"},
 			nil})
 
 }

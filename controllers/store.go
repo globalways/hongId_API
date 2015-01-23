@@ -159,11 +159,59 @@ func (c *StoreController) GetStore() {
 	c.RenderJson(clientRsp)
 }
 
+// 查询商铺by adminid
+// /v1/stores/a/234234?fields=xxx,xxxx,xxx
+// @router /a/:adminid [get]
+func (c *StoreController) GetStoresByAdmin() {
+	adminId, err := c.GetInt64(":adminid")
+	if err != nil {
+		c.AppenWrongParams(errors.NewFieldError(":adminid", "参数adminId格式错误."))
+	}
+
+	// 拆分fields
+	fields := strings.Split(c.GetString("fields"), ",")
+	c.Debug("fields: %+v", fields)
+
+	if c.HandleParamError() {
+		return
+	}
+
+	clientRsp := errors.NewClientRspOK()
+	stores := sm.FindStoresByAdmin(adminId, fields, models.Reader)
+	if stores == nil || len(stores) == 0 {
+		clientRsp.Status = errors.NewStatus(errors.CODE_OPT_NO_MORE_DATA)
+	}
+
+	storesParse := make([]map[string]interface{}, len(stores))
+	for _, store := range stores {
+		storeParse, err := convert.ParseStruct(store, "orm", "column")
+		if err != nil {
+			continue
+		}
+
+		if len(fields) != 0 {
+			body := make(map[string]interface{})
+			for _, field := range fields {
+				if v, ok := storeParse[field]; ok {
+					body[field] = v
+				}
+			}
+
+			storesParse = append(storesParse, body)
+		} else {
+			storesParse = append(storesParse, storeParse)
+		}
+
+	}
+	clientRsp.Body = storesParse
+
+	c.RenderJson(clientRsp)
+}
+
 // 查询商铺列表
-// /v1/stores?adminid=344345&fields=xxx,xxx,xxx&page=1&size=10
+// /v1/stores?fields=xxx,xxx,xxx&page=1&size=10
 // @router / [get]
 func (c *StoreController) GetStores() {
-	adminId := c.GetString("adminid")
 
 	// 拆分fields
 	fields := strings.Split(c.GetString("fields"), ",")
@@ -187,13 +235,8 @@ func (c *StoreController) GetStores() {
 	pager := page.NewDBPaginator(int(pageNum), int(pageSize))
 
 	clientRsp := errors.NewClientRspOK()
-	var stores []*sm.Store
-	// 对特定admin查询
-	if len(adminId) != 0 {
-		stores = sm.FindStoresByAdmin(convert.Str2Int64(adminId), pager, fields, models.Reader)
-	} else {
-		stores = sm.FindStores(pager, fields, models.Reader)
-	}
+
+	stores := sm.FindStores(pager, fields, models.Reader)
 
 	if stores == nil || len(stores) == 0 {
 		clientRsp.Status = errors.NewStatus(errors.CODE_OPT_NO_MORE_DATA)
