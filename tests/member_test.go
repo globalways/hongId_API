@@ -12,7 +12,7 @@ import (
 	"encoding/json"
 	"github.com/astaxie/beego"
 	. "github.com/smartystreets/goconvey/convey"
-	"hongId/controllers"
+	"hongID/controllers"
 )
 
 func init() {

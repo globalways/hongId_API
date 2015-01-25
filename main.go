@@ -1,13 +1,14 @@
 package main
 
 import (
-	_ "hongId/docs"
-	_ "hongId/routers"
+	_ "hongID/docs"
+	_ "hongID/routers"
 
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/context"
 	"os"
 	"runtime"
+	_ "hongID/hprose"
 )
 
 func main() {

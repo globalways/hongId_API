@@ -18,6 +18,7 @@ import (
 var (
 	Reader  orm.Ormer //读数据
 	Writter orm.Ormer //写数据
+	ormer   orm.Ormer
 )
 
 // 参数读取
@@ -56,6 +57,7 @@ func init() {
 		new(sm.StoreProduct),
 		new(sm.StoreAdmin),
 		new(sm.StoreIndustry),
+		new(Member),
 	)
 
 	// 设置为 UTC 时间
@@ -75,6 +77,7 @@ func init() {
 	// 注册数据库连接
 	Reader = orm.NewOrm()
 	Writter = orm.NewOrm()
+	ormer = orm.NewOrm()
 
 	SyncData()
 }

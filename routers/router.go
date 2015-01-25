@@ -9,7 +9,7 @@ package routers
 
 import (
 	"github.com/astaxie/beego"
-	"hongId/controllers"
+	"hongID/controllers"
 )
 
 func init() {
@@ -41,6 +41,8 @@ func init() {
 				&controllers.StoreController{},
 				&controllers.StoreIndustryController{},
 				&controllers.ProductTagController{},
+				&controllers.StoreProductController{},
+				&controllers.PurchaseChannelController{},
 			),
 		),
 	)
